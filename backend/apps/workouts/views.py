@@ -21,6 +21,14 @@ class WorkoutViewSet(viewsets.ModelViewSet):
     def perform_create(self, serializer):
         serializer.save(user=self.request.user)
 
+    def perform_update(self, serializer):
+        # Проверяем, принадлежит ли объект текущему пользователю
+        instance = self.get_object()
+        if instance.user == self.request.user:
+            serializer.save()
+        else:
+            raise PermissionError("You don't have permission to edit this workout")
+
     @action(detail=False, methods=['delete'])
     def delete_all(self, request):
         """Удалить все тренировки пользователя"""

@@ -5,7 +5,12 @@ from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated, AllowAny
 from django.contrib.auth import authenticate, login, logout
 from .models import User, Goal
-from .serializers import UserSerializer, GoalSerializer
+from .serializers import (
+    UserSerializer, 
+    GoalSerializer, 
+    UserProfileSerializer,
+    ChangePasswordSerializer
+)
 
 # Create your views here.
 
@@ -43,6 +48,30 @@ class UserViewSet(viewsets.ModelViewSet):
         logout(request)
         return Response(status=status.HTTP_200_OK)
 
+    @action(detail=False, methods=['get', 'put', 'patch'], permission_classes=[IsAuthenticated])
+    def profile(self, request):
+        if request.method == 'GET':
+            serializer = UserProfileSerializer(request.user)
+            return Response(serializer.data)
+        
+        serializer = UserProfileSerializer(request.user, data=request.data, partial=True)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+    @action(detail=False, methods=['post'], permission_classes=[IsAuthenticated])
+    def change_password(self, request):
+        serializer = ChangePasswordSerializer(data=request.data)
+        if serializer.is_valid():
+            user = request.user
+            if user.check_password(serializer.data['old_password']):
+                user.set_password(serializer.data['new_password'])
+                user.save()
+                return Response({'message': 'Password changed successfully'})
+            return Response({'error': 'Incorrect old password'}, status=status.HTTP_400_BAD_REQUEST)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
 class GoalViewSet(viewsets.ModelViewSet):
     serializer_class = GoalSerializer
     permission_classes = [IsAuthenticated]
@@ -51,4 +80,7 @@ class GoalViewSet(viewsets.ModelViewSet):
         return Goal.objects.filter(user=self.request.user)
 
     def perform_create(self, serializer):
+        serializer.save(user=self.request.user)
+
+    def perform_update(self, serializer):
         serializer.save(user=self.request.user)

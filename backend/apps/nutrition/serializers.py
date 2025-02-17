@@ -4,4 +4,4 @@ from .models import Nutrition
 class NutritionSerializer(serializers.ModelSerializer):
     class Meta:
         model = Nutrition
-        fields = '__all__' 
+        exclude = ('user',)  # Исключаем поле user из сериализатора 

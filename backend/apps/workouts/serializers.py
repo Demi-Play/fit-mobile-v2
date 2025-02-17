@@ -4,4 +4,4 @@ from .models import Workout
 class WorkoutSerializer(serializers.ModelSerializer):
     class Meta:
         model = Workout
-        fields = '__all__' 
+        exclude = ('user',) 

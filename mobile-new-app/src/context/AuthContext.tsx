@@ -1,6 +1,7 @@
-import React, { createContext, useState, useContext, useEffect } from 'react';
+import React, { createContext, useState, useContext } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import api from '../utils/api';
+import { logger } from '../utils/logger';
 
 interface User {
   id: number;
@@ -20,58 +21,62 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
 
-  useEffect(() => {
-    checkUser();
-  }, []);
-
-  const checkUser = async () => {
+  const login = async (username: string, password: string) => {
     try {
-      const token = await AsyncStorage.getItem('token');
-      if (token) {
-        const response = await api.get('/users/profile/');
-        setUser(response.data);
+      setLoading(true);
+      logger.info('Attempting login', { username });
+      const response = await api.post('/auth/login/', { username, password });
+      
+      if (!response.data || !response.data.id) {
+        throw new Error('Invalid response data');
       }
+      
+      setUser(response.data);
+      await AsyncStorage.setItem('user', JSON.stringify(response.data));
+      
+      logger.info('Login successful', { username: response.data.username });
     } catch (error) {
-      console.error('Error checking user:', error);
+      logger.error('Login failed:', error);
+      await AsyncStorage.removeItem('user');
+      throw error;
     } finally {
       setLoading(false);
     }
   };
 
-  const login = async (username: string, password: string) => {
-    try {
-      const response = await api.post('/auth/login/', { username, password });
-      const { access } = response.data;
-      await AsyncStorage.setItem('token', access);
-      
-      // Получаем данные пользователя
-      const userResponse = await api.get('/auth/user/');
-      setUser(userResponse.data);
-    } catch (error) {
-      console.error('Login error:', error);
-      throw error;
-    }
-  };
-
   const logout = async () => {
     try {
-      await AsyncStorage.removeItem('token');
+      await api.post('/auth/logout/');
       setUser(null);
+      await AsyncStorage.removeItem('user');
+      logger.info('Logout successful');
     } catch (error) {
-      console.error('Logout error:', error);
+      logger.error('Logout failed:', error);
       throw error;
     }
   };
 
   const register = async (username: string, email: string, password: string) => {
     try {
-      await api.post('/auth/register/', { username, email, password });
-      // После успешной регистрации выполняем вход
-      await login(username, password);
+      logger.info('Attempting registration', { username, email });
+      const response = await api.post('/auth/register/', { 
+        username, 
+        email, 
+        password 
+      });
+      
+      if (!response.data || !response.data.id) {
+        throw new Error('Invalid response data');
+      }
+      
+      setUser(response.data);
+      await AsyncStorage.setItem('user', JSON.stringify(response.data));
+      
+      logger.info('Registration successful', { username });
     } catch (error) {
-      console.error('Registration error:', error);
+      logger.error('Registration failed:', error);
       throw error;
     }
   };

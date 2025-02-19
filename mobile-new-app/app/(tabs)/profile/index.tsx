@@ -1,35 +1,18 @@
-import React from 'react';
-import { View, StyleSheet } from 'react-native';
-import { Button, Card, Title, Paragraph } from 'react-native-paper';
+import { View, Text, StyleSheet } from 'react-native';
+import { Button } from 'react-native-paper';
 import { useAuth } from '../../../src/context/AuthContext';
-import { useRouter } from 'expo-router';
 
 export default function ProfileScreen() {
   const { user, logout } = useAuth();
-  const router = useRouter();
-
-  const handleLogout = async () => {
-    try {
-      await logout();
-      router.replace('/(auth)/login');
-    } catch (error) {
-      console.error('Logout failed:', error);
-    }
-  };
 
   return (
     <View style={styles.container}>
-      <Card style={styles.card}>
-        <Card.Content>
-          <Title>Профиль</Title>
-          <Paragraph>Имя пользователя: {user?.username}</Paragraph>
-          <Paragraph>Email: {user?.email}</Paragraph>
-        </Card.Content>
-      </Card>
-
+      <Text style={styles.title}>Профиль</Text>
+      <Text style={styles.text}>Имя пользователя: {user?.username}</Text>
+      <Text style={styles.text}>Email: {user?.email}</Text>
       <Button 
         mode="contained" 
-        onPress={handleLogout}
+        onPress={logout}
         style={styles.button}
       >
         Выйти
@@ -41,12 +24,20 @@ export default function ProfileScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    padding: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 20,
   },
-  card: {
-    marginBottom: 16,
+  title: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    marginBottom: 20,
+  },
+  text: {
+    fontSize: 16,
+    marginBottom: 10,
   },
   button: {
-    marginTop: 16,
+    marginTop: 20,
   },
 }); 

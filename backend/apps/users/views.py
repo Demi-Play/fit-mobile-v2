@@ -12,9 +12,10 @@ from .serializers import (
     ChangePasswordSerializer
 )
 from rest_framework.views import APIView
-from rest_framework_simplejwt.tokens import RefreshToken
+import logging
 
 User = get_user_model()
+logger = logging.getLogger(__name__)
 
 # Create your views here.
 
@@ -89,6 +90,30 @@ class GoalViewSet(viewsets.ModelViewSet):
     def perform_update(self, serializer):
         serializer.save(user=self.request.user)
 
+class LoginView(APIView):
+    permission_classes = [AllowAny]
+
+    def post(self, request):
+        username = request.data.get('username')
+        password = request.data.get('password')
+        
+        if not username or not password:
+            return Response(
+                {'detail': 'Please provide both username and password'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+            
+        user = authenticate(username=username, password=password)
+        
+        if user:
+            login(request, user)
+            return Response(UserSerializer(user).data)
+            
+        return Response(
+            {'detail': 'Invalid credentials'},
+            status=status.HTTP_401_UNAUTHORIZED
+        )
+
 class RegisterView(APIView):
     permission_classes = [AllowAny]
 
@@ -96,33 +121,35 @@ class RegisterView(APIView):
         serializer = UserSerializer(data=request.data)
         if serializer.is_valid():
             user = serializer.save()
-            refresh = RefreshToken.for_user(user)
-            return Response({
-                'user': serializer.data,
-                'access': str(refresh.access_token),
-                'refresh': str(refresh),
-            }, status=status.HTTP_201_CREATED)
+            login(request, user)
+            return Response(
+                serializer.data,
+                status=status.HTTP_201_CREATED
+            )
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
-class LoginView(APIView):
-    permission_classes = [AllowAny]
+class LogoutView(APIView):
+    permission_classes = [IsAuthenticated]
 
     def post(self, request):
-        username = request.data.get('username')
-        password = request.data.get('password')
-        user = authenticate(username=username, password=password)
-        if user:
-            refresh = RefreshToken.for_user(user)
-            return Response({
-                'access': str(refresh.access_token),
-                'refresh': str(refresh),
-            })
-        return Response(
-            {'detail': 'Invalid credentials'},
-            status=status.HTTP_401_UNAUTHORIZED
-        )
+        logout(request)
+        return Response(status=status.HTTP_200_OK)
 
 class UserProfileView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        serializer = UserProfileSerializer(request.user)
+        return Response(serializer.data)
+        
+    def put(self, request):
+        serializer = UserProfileSerializer(request.user, data=request.data, partial=True)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+class UserView(APIView):
     permission_classes = [IsAuthenticated]
 
     def get(self, request):

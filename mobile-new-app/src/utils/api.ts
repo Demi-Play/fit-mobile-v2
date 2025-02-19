@@ -1,6 +1,6 @@
 import axios from 'axios';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Platform } from 'react-native';
+import { logger } from './logger';
 
 // Для Android эмулятора используйте 10.0.2.2 вместо localhost
 // Для iOS эмулятора используйте localhost
@@ -15,27 +15,43 @@ const api = axios.create({
   headers: {
     'Content-Type': 'application/json',
   },
+  withCredentials: true, // Важно для работы с сессиями
 });
 
-// Добавляем перехватчик для установки токена в заголовки
+// Добавляем перехватчик для логирования запросов
 api.interceptors.request.use(
   async (config) => {
-    const token = await AsyncStorage.getItem('token');
-    if (token) {
-      config.headers.Authorization = `Bearer ${token}`;
-    }
+    logger.debug('API Request:', {
+      method: config.method?.toUpperCase(),
+      url: config.url,
+      data: config.data,
+    });
     return config;
   },
   (error) => {
+    logger.error('API Request Error:', error);
     return Promise.reject(error);
   }
 );
 
-// Обновляем пути для аутентификации
-export const authAPI = {
-  register: (data: { username: string; email: string; password: string }) => api.post('/auth/register/', data),
-  login: (data: { username: string; password: string }) => api.post('/auth/login/', data), 
-  getProfile: () => api.get('/auth/user/'),
-};
+// Добавляем перехватчик для логирования ответов
+api.interceptors.response.use(
+  (response) => {
+    logger.debug('API Response:', {
+      status: response.status,
+      url: response.config.url,
+      data: response.data,
+    });
+    return response;
+  },
+  (error) => {
+    logger.error('API Response Error:', {
+      status: error.response?.status,
+      url: error.config?.url,
+      data: error.response?.data,
+    });
+    return Promise.reject(error);
+  }
+);
 
 export default api; 

@@ -1,33 +1,31 @@
 import { Tabs } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 
-type IconName = 'fitness' | 'fitness-outline' | 'restaurant' | 'restaurant-outline' | 'person' | 'person-outline';
-
-interface TabBarIconProps {
-  focused: boolean;
-  color: string;
-  size: number;
-}
+type IconName = keyof typeof Ionicons.glyphMap;
 
 export default function TabLayout() {
   return (
     <Tabs
       screenOptions={({ route }) => ({
-        tabBarIcon: ({ focused, color, size }: TabBarIconProps) => {
-          let iconName: IconName;
+        tabBarIcon: ({ focused, color, size }) => {
+          let iconName: IconName = 'home-outline';
 
           switch (route.name) {
+            case 'index':
+              iconName = focused ? 'home' : 'home-outline';
+              break;
             case 'workouts':
               iconName = focused ? 'fitness' : 'fitness-outline';
               break;
             case 'nutrition':
               iconName = focused ? 'restaurant' : 'restaurant-outline';
               break;
+            case 'goals':
+              iconName = focused ? 'trophy' : 'trophy-outline';
+              break;
             case 'profile':
               iconName = focused ? 'person' : 'person-outline';
               break;
-            default:
-              iconName = 'person-outline';
           }
 
           return <Ionicons name={iconName} size={size} color={color} />;
@@ -36,6 +34,12 @@ export default function TabLayout() {
         tabBarInactiveTintColor: 'gray',
       })}
     >
+      <Tabs.Screen
+        name="index"
+        options={{
+          title: 'Главная',
+        }}
+      />
       <Tabs.Screen
         name="workouts"
         options={{
@@ -46,6 +50,12 @@ export default function TabLayout() {
         name="nutrition"
         options={{
           title: 'Питание',
+        }}
+      />
+      <Tabs.Screen
+        name="goals"
+        options={{
+          title: 'Цели',
         }}
       />
       <Tabs.Screen

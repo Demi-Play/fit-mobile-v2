@@ -1,6 +1,5 @@
 import { Tabs } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import { Route } from '@react-navigation/native';
 
 type IconName = 'fitness' | 'fitness-outline' | 'restaurant' | 'restaurant-outline' | 'person' | 'person-outline';
 
@@ -13,7 +12,7 @@ interface TabBarIconProps {
 export default function TabLayout() {
   return (
     <Tabs
-      screenOptions={({ route }: { route: Route<string> }) => ({
+      screenOptions={({ route }) => ({
         tabBarIcon: ({ focused, color, size }: TabBarIconProps) => {
           let iconName: IconName;
 

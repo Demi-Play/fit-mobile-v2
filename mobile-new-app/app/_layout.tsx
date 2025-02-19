@@ -1,13 +1,13 @@
 import { Stack } from 'expo-router';
-import { Provider as PaperProvider, DefaultTheme } from 'react-native-paper';
 import { AuthProvider } from '../src/context/AuthContext';
+import { Provider as PaperProvider, MD3LightTheme } from 'react-native-paper';
 
 const theme = {
-  ...DefaultTheme,
+  ...MD3LightTheme,
   colors: {
-    ...DefaultTheme.colors,
+    ...MD3LightTheme.colors,
     primary: '#2196F3',
-    accent: '#f1c40f',
+    secondary: '#f1c40f',
     background: '#f5f5f5',
   },
 };
@@ -16,9 +16,7 @@ export default function RootLayout() {
   return (
     <AuthProvider>
       <PaperProvider theme={theme}>
-        <Stack screenOptions={{ headerShown: false }}>
-          <Stack.Screen name="(tabs)" />
-        </Stack>
+        <Stack screenOptions={{ headerShown: false }} />
       </PaperProvider>
     </AuthProvider>
   );

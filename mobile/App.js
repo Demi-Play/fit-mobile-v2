@@ -1,11 +1,7 @@
-import React, { useEffect } from 'react';
-import { NavigationContainer } from '@react-navigation/native';
+import { useEffect } from 'react';
 import { Provider as PaperProvider, DefaultTheme } from 'react-native-paper';
-import { StatusBar } from 'react-native';
-import { AuthProvider, useAuth } from './src/context/AuthContext';
-import AppNavigator from './src/navigation/AppNavigator';
+import { AuthProvider } from './src/context/AuthContext';
 
-// Создаем кастомную тему
 const theme = {
   ...DefaultTheme,
   colors: {
@@ -16,26 +12,12 @@ const theme = {
   },
 };
 
-// Основной компонент приложения
-function MainApp() {
-  const { loadUser } = useAuth();
-
-  useEffect(() => {
-    loadUser();
-  }, []);
-
-  return <AppNavigator />;
-}
-
 export default function App() {
   return (
-    <NavigationContainer>
-      <StatusBar backgroundColor="#2196F3" barStyle="light-content" />
+    <AuthProvider>
       <PaperProvider theme={theme}>
-        <AuthProvider>
-          <MainApp />
-        </AuthProvider>
+        {/* expo-router автоматически обрабатывает навигацию */}
       </PaperProvider>
-    </NavigationContainer>
+    </AuthProvider>
   );
 }

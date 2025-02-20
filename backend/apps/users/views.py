@@ -3,7 +3,8 @@ from rest_framework import viewsets, status
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated, AllowAny
-from django.contrib.auth import authenticate, login, logout, get_user_model
+from django.contrib.auth import authenticate, get_user_model
+from rest_framework_simplejwt.tokens import RefreshToken
 from .models import User, Goal
 from .serializers import (
     UserSerializer, 
@@ -24,7 +25,7 @@ class UserViewSet(viewsets.ModelViewSet):
     permission_classes = [AllowAny]  # Разрешаем доступ для регистрации
 
     def get_queryset(self):
-        if self.action in ['register', 'login', 'logout']:
+        if self.action in ['register']:
             return User.objects.all()
         return User.objects.filter(id=self.request.user.id)
 
@@ -33,25 +34,13 @@ class UserViewSet(viewsets.ModelViewSet):
         serializer = self.get_serializer(data=request.data)
         if serializer.is_valid():
             user = serializer.save()
-            login(request, user)  # Автоматически логиним после регистрации
-            return Response(serializer.data, status=status.HTTP_201_CREATED)
+            refresh = RefreshToken.for_user(user)
+            return Response({
+                'user': serializer.data,
+                'refresh': str(refresh),
+                'access': str(refresh.access_token)
+            }, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-
-    @action(detail=False, methods=['post'])
-    def login(self, request):
-        username = request.data.get('username')
-        password = request.data.get('password')
-        user = authenticate(username=username, password=password)
-        if user:
-            login(request, user)
-            serializer = self.get_serializer(user)
-            return Response(serializer.data)
-        return Response({'error': 'Invalid credentials'}, status=status.HTTP_400_BAD_REQUEST)
-
-    @action(detail=False, methods=['post'])
-    def logout(self, request):
-        logout(request)
-        return Response(status=status.HTTP_200_OK)
 
     @action(detail=False, methods=['get', 'put', 'patch'], permission_classes=[IsAuthenticated])
     def profile(self, request):
@@ -106,8 +95,12 @@ class LoginView(APIView):
         user = authenticate(username=username, password=password)
         
         if user:
-            login(request, user)
-            return Response(UserSerializer(user).data)
+            refresh = RefreshToken.for_user(user)
+            return Response({
+                'user': UserSerializer(user).data,
+                'refresh': str(refresh),
+                'access': str(refresh.access_token)
+            })
             
         return Response(
             {'detail': 'Invalid credentials'},
@@ -121,19 +114,25 @@ class RegisterView(APIView):
         serializer = UserSerializer(data=request.data)
         if serializer.is_valid():
             user = serializer.save()
-            login(request, user)
-            return Response(
-                serializer.data,
-                status=status.HTTP_201_CREATED
-            )
+            refresh = RefreshToken.for_user(user)
+            return Response({
+                'user': serializer.data,
+                'refresh': str(refresh),
+                'access': str(refresh.access_token)
+            }, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 class LogoutView(APIView):
     permission_classes = [IsAuthenticated]
 
     def post(self, request):
-        logout(request)
-        return Response(status=status.HTTP_200_OK)
+        try:
+            refresh_token = request.data["refresh"]
+            token = RefreshToken(refresh_token)
+            token.blacklist()
+            return Response(status=status.HTTP_205_RESET_CONTENT)
+        except Exception:
+            return Response(status=status.HTTP_400_BAD_REQUEST)
 
 class UserProfileView(APIView):
     permission_classes = [IsAuthenticated]

@@ -11,18 +11,14 @@ from .serializers import WorkoutSerializer
 class WorkoutViewSet(viewsets.ModelViewSet):
     serializer_class = WorkoutSerializer
     permission_classes = [IsAuthenticated]
-    queryset = Workout.objects.none()  # Пустой queryset по умолчанию
-
+    
     def get_queryset(self):
-        if self.request.user.is_authenticated:
-            return Workout.objects.filter(user=self.request.user)
-        return Workout.objects.none()
+        return Workout.objects.filter(user=self.request.user)
 
     def perform_create(self, serializer):
         serializer.save(user=self.request.user)
 
     def perform_update(self, serializer):
-        # Проверяем, принадлежит ли объект текущему пользователю
         instance = self.get_object()
         if instance.user == self.request.user:
             serializer.save()

@@ -11,18 +11,14 @@ from .serializers import NutritionSerializer
 class NutritionViewSet(viewsets.ModelViewSet):
     serializer_class = NutritionSerializer
     permission_classes = [IsAuthenticated]
-    queryset = Nutrition.objects.none()  # Пустой queryset по умолчанию
-
+    
     def get_queryset(self):
-        if self.request.user.is_authenticated:
-            return Nutrition.objects.filter(user=self.request.user)
-        return Nutrition.objects.none()
+        return Nutrition.objects.filter(user=self.request.user)
 
     def perform_create(self, serializer):
         serializer.save(user=self.request.user)
 
     def perform_update(self, serializer):
-        # Проверяем, принадлежит ли объект текущему пользователю
         instance = self.get_object()
         if instance.user == self.request.user:
             serializer.save()

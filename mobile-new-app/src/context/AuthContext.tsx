@@ -29,17 +29,24 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       logger.info('Attempting login', { username });
       const response = await api.post('/auth/login/', { username, password });
       
-      if (!response.data || !response.data.id) {
+      if (!response.data || !response.data.user) {
         throw new Error('Invalid response data');
       }
       
-      setUser(response.data);
-      await AsyncStorage.setItem('user', JSON.stringify(response.data));
+      const { user, access, refresh } = response.data;
       
-      logger.info('Login successful', { username: response.data.username });
+      // Сохраняем токены
+      await AsyncStorage.setItem('access_token', access);
+      await AsyncStorage.setItem('refresh_token', refresh);
+      
+      // Сохраняем данные пользователя
+      setUser(user);
+      await AsyncStorage.setItem('user', JSON.stringify(user));
+      
+      logger.info('Login successful', { username: user.username });
     } catch (error) {
       logger.error('Login failed:', error);
-      await AsyncStorage.removeItem('user');
+      await AsyncStorage.multiRemove(['user', 'access_token', 'refresh_token']);
       throw error;
     } finally {
       setLoading(false);
@@ -48,12 +55,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const logout = async () => {
     try {
-      await api.post('/auth/logout/');
+      const refreshToken = await AsyncStorage.getItem('refresh_token');
+      await api.post('/auth/logout/', { refresh: refreshToken });
       setUser(null);
-      await AsyncStorage.removeItem('user');
+      await AsyncStorage.multiRemove(['user', 'access_token', 'refresh_token']);
       logger.info('Logout successful');
     } catch (error) {
       logger.error('Logout failed:', error);
+      // Даже если запрос не удался, очищаем локальные данные
+      setUser(null);
+      await AsyncStorage.multiRemove(['user', 'access_token', 'refresh_token']);
       throw error;
     }
   };
@@ -67,12 +78,19 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         password 
       });
       
-      if (!response.data || !response.data.id) {
+      if (!response.data || !response.data.user) {
         throw new Error('Invalid response data');
       }
       
-      setUser(response.data);
-      await AsyncStorage.setItem('user', JSON.stringify(response.data));
+      const { user, access, refresh } = response.data;
+      
+      // Сохраняем токены
+      await AsyncStorage.setItem('access_token', access);
+      await AsyncStorage.setItem('refresh_token', refresh);
+      
+      // Сохраняем данные пользователя
+      setUser(user);
+      await AsyncStorage.setItem('user', JSON.stringify(user));
       
       logger.info('Registration successful', { username });
     } catch (error) {

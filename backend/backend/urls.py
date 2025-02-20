@@ -25,9 +25,10 @@ urlpatterns = [
     path('admin/', admin.site.urls),
     path('api/token/', TokenObtainPairView.as_view(), name='token_obtain_pair'),
     path('api/token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
-    path('api/auth/', include('apps.users.urls')),  # Изменили путь
+    path('api/auth/', include('apps.users.urls')),
     path('api/', include([
         path('workouts/', include('apps.workouts.urls')),
         path('nutrition/', include('apps.nutrition.urls')),
+        path('goals/', include(('apps.users.urls', 'goals'), namespace='goals')),
     ])),
 ]

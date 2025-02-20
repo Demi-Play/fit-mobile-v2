@@ -13,11 +13,13 @@ export interface Nutrition {
   name: string;
   calories: number;
   protein: number;
-  carbs: number;
+  carbohydrates: number;
   fats: number;
-  date: string;
   meal_type: 'breakfast' | 'lunch' | 'dinner' | 'snack';
-  user: number;
+  date?: string;
+  created_at?: string;
+  updated_at?: string;
+  user?: number;
 }
 
 export interface Goal {

@@ -41,12 +41,11 @@ export default function NutritionScreen() {
         ...newMeal,
         calories: parseInt(newMeal.calories),
         protein: parseFloat(newMeal.protein),
-        carbs: parseFloat(newMeal.carbs),
+        carbohydrates: parseFloat(newMeal.carbohydrates),
         fats: parseFloat(newMeal.fats)
       });
       setVisible(false);
       setNewMeal({
-        name: '',
         calories: '',
         protein: '',
         carbs: '',
@@ -62,11 +61,11 @@ export default function NutritionScreen() {
 
   const renderMealItem = ({ item }: { item: Nutrition }) => (
     <View style={styles.mealItem}>
-      <Text style={styles.mealName}>{item.name || 'Без названия'}</Text>
-      <Text style={styles.mealType}>{getMealTypeLabel(item.meal_type)}</Text>
+      {/* <Text style={styles.mealName}>{item.name || 'Без названия'}</Text> */}
+      <Text style={styles.mealName}>{getMealTypeLabel(item.meal_type)}</Text>
       <Text>Калории: {item.calories || 0} ккал</Text>
       <Text>Белки: {item.protein || 0}г</Text>
-      <Text>Углеводы: {item.carbs || 0}г</Text>
+      <Text>Углеводы: {item.carbohydrates || 0}г</Text>
       <Text>Жиры: {item.fats || 0}г</Text>
     </View>
   );
@@ -100,12 +99,12 @@ export default function NutritionScreen() {
           <View style={styles.modalContent}>
             <Text style={styles.modalTitle}>Добавить приём пищи</Text>
             
-            <TextInput
+            {/* <TextInput
               label="Название"
               value={newMeal.name}
               onChangeText={(text: string) => setNewMeal({...newMeal, name: text})}
               style={styles.input}
-            />
+            /> */}
 
             <SegmentedButtons
               value={newMeal.meal_type}
@@ -137,8 +136,8 @@ export default function NutritionScreen() {
 
             <TextInput
               label="Углеводы (г)"
-              value={newMeal.carbs}
-              onChangeText={(text: string) => setNewMeal({...newMeal, carbs: text})}
+              value={newMeal.carbohydrates}
+              onChangeText={(text: string) => setNewMeal({...newMeal, carbohydrates: text})}
               keyboardType="numeric"
               style={styles.input}
             />

@@ -101,19 +101,56 @@ export const authApi = {
 
 // Workouts API
 export const workoutsApi = {
-  getAll: () => api.get<Workout[]>('/workouts/'),
-  getById: (id: number) => api.get<Workout>(`/workouts/${id}/`),
-  create: (data: Partial<Workout>) => api.post<Workout>('/workouts/', data),
-  update: (id: number, data: Partial<Workout>) => api.put<Workout>(`/workouts/${id}/`, data),
-  delete: (id: number) => api.delete(`/workouts/${id}/`),
+  getAll: () => {
+    console.log('Fetching all workouts');
+    return api.get<Workout[]>('/workouts/');
+  },
+  getById: (id: number) => {
+    console.log(`Fetching workout with id ${id}`);
+    return api.get<Workout>(`/workouts/${id}/`);
+  },
+  create: (data: Partial<Workout>) => {
+    console.log('Creating new workout:', data);
+    const formattedData = {
+      ...data,
+      date: data.date ? new Date(data.date).toISOString() : undefined
+    };
+    return api.post<Workout>('/workouts/', formattedData);
+  },
+  update: (id: number, data: Partial<Workout>) => {
+    console.log(`Updating workout ${id}:`, data);
+    const formattedData = {
+      ...data,
+      date: data.date ? new Date(data.date).toISOString() : undefined
+    };
+    return api.put<Workout>(`/workouts/${id}/`, formattedData);
+  },
+  delete: (id: number) => {
+    console.log(`Deleting workout ${id}`);
+    return api.delete(`/workouts/${id}/`);
+  },
+  deleteAll: () => {
+    console.log('Deleting all workouts');
+    return api.delete('/workouts/delete_all/');
+  },
+  deleteByDate: (date: string) => {
+    console.log(`Deleting workouts for date ${date}`);
+    return api.delete(`/workouts/delete_by_date/?date=${date}`);
+  }
 };
 
 // Nutrition API
 export const nutritionApi = {
-  getAll: () => api.get<Nutrition[]>('/nutrition/'),
-  getById: (id: number) => api.get<Nutrition>(`/nutrition/${id}/`),
+  getAll: () => {
+    console.log('Fetching all nutrition records');
+    return api.get<Nutrition[]>('/nutrition/');
+  },
+  getById: (id: number) => {
+    console.log(`Fetching nutrition record with id ${id}`);
+    return api.get<Nutrition>(`/nutrition/${id}/`);
+  },
   create: (data: Partial<Nutrition>) => {
-    // Преобразуем дату в нужный формат, если она есть
+    console.log('Creating new nutrition record:', data);
     const formattedData = {
       ...data,
       date: data.date ? new Date(data.date).toISOString() : undefined
@@ -121,23 +158,69 @@ export const nutritionApi = {
     return api.post<Nutrition>('/nutrition/', formattedData);
   },
   update: (id: number, data: Partial<Nutrition>) => {
-    // Преобразуем дату в нужный формат, если она есть
+    console.log(`Updating nutrition record ${id}:`, data);
     const formattedData = {
       ...data,
       date: data.date ? new Date(data.date).toISOString() : undefined
     };
     return api.put<Nutrition>(`/nutrition/${id}/`, formattedData);
   },
-  delete: (id: number) => api.delete(`/nutrition/${id}/`),
+  delete: (id: number) => {
+    console.log(`Deleting nutrition record ${id}`);
+    return api.delete(`/nutrition/${id}/`);
+  },
+  deleteAll: () => {
+    console.log('Deleting all nutrition records');
+    return api.delete('/nutrition/delete_all/');
+  },
+  deleteByDate: (date: string) => {
+    console.log(`Deleting nutrition records for date ${date}`);
+    return api.delete(`/nutrition/delete_by_date/?date=${date}`);
+  },
+  deleteByMealType: (mealType: string) => {
+    console.log(`Deleting nutrition records for meal type ${mealType}`);
+    return api.delete(`/nutrition/delete_by_meal_type/?meal_type=${mealType}`);
+  }
 };
 
 // Goals API
 export const goalsApi = {
-  getAll: () => api.get<Goal[]>('/goals/'),
-  getById: (id: number) => api.get<Goal>(`/goals/${id}/`),
-  create: (data: Partial<Goal>) => api.post<Goal>('/goals/', data),
-  update: (id: number, data: Partial<Goal>) => api.put<Goal>(`/goals/${id}/`, data),
-  delete: (id: number) => api.delete(`/goals/${id}/`),
+  getAll: () => {
+    console.log('Fetching all goals');
+    return api.get<Goal[]>('/goals/');
+  },
+  getById: (id: number) => {
+    console.log(`Fetching goal with id ${id}`);
+    return api.get<Goal>(`/goals/${id}/`);
+  },
+  create: (data: Partial<Goal>) => {
+    console.log('Creating new goal:', data);
+    const formattedData = {
+      ...data,
+      target_date: data.target_date ? new Date(data.target_date).toISOString() : undefined
+    };
+    return api.post<Goal>('/goals/', formattedData);
+  },
+  update: (id: number, data: Partial<Goal>) => {
+    console.log(`Updating goal ${id}:`, data);
+    const formattedData = {
+      ...data,
+      target_date: data.target_date ? new Date(data.target_date).toISOString() : undefined
+    };
+    return api.put<Goal>(`/goals/${id}/`, formattedData);
+  },
+  delete: (id: number) => {
+    console.log(`Deleting goal ${id}`);
+    return api.delete(`/goals/${id}/`);
+  },
+  updateProgress: (id: number, progress: number) => {
+    console.log(`Updating goal ${id} progress to ${progress}`);
+    return api.patch<Goal>(`/goals/${id}/`, { progress });
+  },
+  toggleAchieved: (id: number, achieved: boolean) => {
+    console.log(`Setting goal ${id} achieved status to ${achieved}`);
+    return api.patch<Goal>(`/goals/${id}/`, { achieved });
+  }
 };
 
 export default api;

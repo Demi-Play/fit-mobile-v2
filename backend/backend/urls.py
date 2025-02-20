@@ -29,6 +29,6 @@ urlpatterns = [
     path('api/', include([
         path('workouts/', include('apps.workouts.urls')),
         path('nutrition/', include('apps.nutrition.urls')),
-        path('goals/', include(('apps.users.urls', 'goals'), namespace='goals')),
+        path('goals/', include('apps.users.goals_urls')),
     ])),
 ]

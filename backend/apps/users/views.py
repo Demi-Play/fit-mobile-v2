@@ -71,13 +71,93 @@ class GoalViewSet(viewsets.ModelViewSet):
     permission_classes = [IsAuthenticated]
 
     def get_queryset(self):
+        logger.info(f"Getting goals for user {self.request.user.username}")
         return Goal.objects.filter(user=self.request.user)
 
     def perform_create(self, serializer):
+        logger.info(f"Creating goal for user {self.request.user.username}")
         serializer.save(user=self.request.user)
 
     def perform_update(self, serializer):
-        serializer.save(user=self.request.user)
+        logger.info(f"Updating goal for user {self.request.user.username}")
+        instance = self.get_object()
+        if instance.user == self.request.user:
+            serializer.save()
+        else:
+            raise PermissionError("You don't have permission to edit this goal")
+
+    def destroy(self, request, *args, **kwargs):
+        logger.info(f"Deleting goal for user {request.user.username}")
+        instance = self.get_object()
+        if instance.user != request.user:
+            raise PermissionError("You don't have permission to delete this goal")
+        return super().destroy(request, *args, **kwargs)
+
+    @action(detail=True, methods=['patch'])
+    def toggle_achieved(self, request, pk=None):
+        """Переключить статус достижения цели"""
+        goal = self.get_object()
+        goal.achieved = not goal.achieved
+        goal.save()
+        serializer = self.get_serializer(goal)
+        return Response(serializer.data)
+
+    @action(detail=True, methods=['patch'])
+    def update_progress(self, request, pk=None):
+        """Обновить прогресс цели"""
+        goal = self.get_object()
+        progress = request.data.get('progress')
+        if progress is None:
+            return Response(
+                {'error': 'Progress value is required'}, 
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        try:
+            progress = float(progress)
+            if not 0 <= progress <= 100:
+                raise ValueError("Progress must be between 0 and 100")
+        except ValueError as e:
+            return Response(
+                {'error': str(e)}, 
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        goal.progress = progress
+        if progress == 100:
+            goal.achieved = True
+        goal.save()
+        
+        serializer = self.get_serializer(goal)
+        return Response(serializer.data)
+
+    @action(detail=False, methods=['get'])
+    def by_category(self, request):
+        """Получить цели по категории"""
+        category = request.query_params.get('category')
+        if not category:
+            return Response(
+                {'error': 'Category parameter is required'}, 
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        goals = self.get_queryset().filter(category=category)
+        serializer = self.get_serializer(goals, many=True)
+        return Response(serializer.data)
+
+    @action(detail=False, methods=['get'])
+    def achieved(self, request):
+        """Получить достигнутые цели"""
+        goals = self.get_queryset().filter(achieved=True)
+        serializer = self.get_serializer(goals, many=True)
+        return Response(serializer.data)
+
+    @action(detail=False, methods=['get'])
+    def in_progress(self, request):
+        """Получить цели в процессе"""
+        goals = self.get_queryset().filter(achieved=False)
+        serializer = self.get_serializer(goals, many=True)
+        return Response(serializer.data)
 
 class LoginView(APIView):
     permission_classes = [AllowAny]

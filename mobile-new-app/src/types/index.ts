@@ -30,6 +30,8 @@ export interface Goal {
   achieved: boolean;
   progress: number;
   category: 'workout' | 'nutrition' | 'weight' | 'other';
+  goal_type: 'strength' | 'endurance' | 'weight_loss' | 'muscle_gain';
+  target_weight: string;
   created_at?: string;
   updated_at?: string;
   user?: number;

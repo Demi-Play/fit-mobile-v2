@@ -3,6 +3,7 @@ import { View, Text, StyleSheet } from 'react-native';
 import { Card } from '../common/Card';
 import { Button } from '../common/Button';
 import { Goal } from '../../types';
+import { FAB } from 'react-native-paper';
 
 interface GoalCardProps {
   goal: Goal;
@@ -26,11 +27,10 @@ export const GoalCard: React.FC<GoalCardProps> = ({
       <View style={styles.header}>
         <Text style={styles.title}>{goal.name}</Text>
         <Text style={[styles.category, styles[`category_${goal.category}`]]}>
-          {goal.category}
+          {goal.goal_type}
         </Text>
       </View>
       
-      <Text style={styles.description}>{goal.description}</Text>
       
       <View style={styles.progressContainer}>
         <View style={styles.progressBar}>
@@ -41,29 +41,32 @@ export const GoalCard: React.FC<GoalCardProps> = ({
             ]} 
           />
         </View>
-        <Text style={styles.progressText}>{`${goal.progress}%`}</Text>
+        <Text style={styles.progressText}>{`${goal.target_weight} кг`}</Text>
       </View>
 
       <Text style={styles.date}>
-        Target: {new Date(goal.target_date).toLocaleDateString()}
+        Дедлайн: {new Date(goal.target_date).toLocaleDateString()}
       </Text>
 
       <View style={styles.actions}>
         <Button
-          title={goal.achieved ? "Mark Incomplete" : "Mark Complete"}
+          title={goal.achieved ? "Не выполнено" : "Выполнено"}
           onPress={onToggleAchieved}
           variant={goal.achieved ? "secondary" : "primary"}
         />
-        <Button
-          title="Edit"
-          onPress={onEdit}
-          variant="secondary"
-        />
-        <Button
-          title="Delete"
-          onPress={onDelete}
-          variant="danger"
-        />
+        
+        <FAB
+        icon="pencil"
+        style={styles.edit}
+        variant="secondary"
+        onPress={onEdit}
+      />
+      <FAB
+        icon="delete"
+        style={styles.delete}
+        variant="danger"
+        onPress={onDelete}
+      />
       </View>
     </Card>
   );
@@ -134,13 +137,25 @@ const styles = StyleSheet.create({
     textAlign: 'right',
   },
   date: {
-    fontSize: 12,
-    color: '#8E8E93',
+    fontSize: 14,
+    color: '#666666',
+    fontWeight: '500',
     marginBottom: 12,
   },
   actions: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     gap: 8,
+  },
+  delete: {
+    position: 'absolute',
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'red',
+  },
+  edit: {
+    position: 'absolute',
+    right: 70,
+    bottom: 0,
   },
 }); 

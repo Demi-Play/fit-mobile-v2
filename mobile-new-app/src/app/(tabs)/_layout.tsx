@@ -3,11 +3,21 @@ import { Ionicons } from '@expo/vector-icons';
 
 type IconName = keyof typeof Ionicons.glyphMap;
 
+interface TabBarIconProps {
+  focused: boolean;
+  color: string;
+  size: number;
+}
+
+interface RouteProps {
+  name: string;
+}
+
 export default function TabLayout() {
   return (
     <Tabs
-      screenOptions={({ route }) => ({
-        tabBarIcon: ({ focused, color, size }) => {
+      screenOptions={({ route }: { route: RouteProps }) => ({
+        tabBarIcon: ({ focused, color, size }: TabBarIconProps) => {
           let iconName: IconName = 'home-outline';
 
           switch (route.name) {
@@ -23,7 +33,7 @@ export default function TabLayout() {
             case 'goals':
               iconName = focused ? 'trophy' : 'trophy-outline';
               break;
-            case 'profile':
+            case 'profile/index':
               iconName = focused ? 'person' : 'person-outline';
               break;
           }
@@ -59,9 +69,10 @@ export default function TabLayout() {
         }}
       />
       <Tabs.Screen
-        name="profile"
+        name="profile/index"
         options={{
           title: 'Профиль',
+          headerTitle: 'Профиль',
         }}
       />
     </Tabs>

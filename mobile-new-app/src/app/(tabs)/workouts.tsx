@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { View, FlatList, StyleSheet } from 'react-native';
-import { Text, FAB, Portal, Modal, TextInput, Button } from 'react-native-paper';
+import { View, FlatList, StyleSheet, Alert } from 'react-native';
+import { Text, FAB, Portal, Modal, TextInput, Button, IconButton } from 'react-native-paper';
 import { Workout } from '../../../src/types';
 import { workoutsApi } from '../../../src/services/api';
 import { logger } from '../../../src/utils/logger';
@@ -9,6 +9,7 @@ export default function WorkoutsScreen() {
   const [workouts, setWorkouts] = useState<Workout[]>([]);
   const [visible, setVisible] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [editingWorkout, setEditingWorkout] = useState<Workout | null>(null);
   const [newWorkout, setNewWorkout] = useState({
     name: '',
     description: '',
@@ -33,9 +34,86 @@ export default function WorkoutsScreen() {
     loadWorkouts();
   }, []);
 
+  const handleDelete = (workout: Workout) => {
+    Alert.alert(
+      "Удаление тренировки",
+      "Вы уверены, что хотите удалить эту тренировку?",
+      [
+        { text: "Отмена", style: "cancel" },
+        {
+          text: "Удалить",
+          style: "destructive",
+          onPress: async () => {
+            try {
+              await workoutsApi.delete(workout.id);
+              loadWorkouts();
+            } catch (error) {
+              logger.error('Error deleting workout:', error);
+            }
+          }
+        }
+      ]
+    );
+  };
+
+  const handleEdit = (workout: Workout) => {
+    setEditingWorkout(workout);
+    setNewWorkout({
+      name: workout.name || '',
+      description: workout.description || '',
+      duration: workout.duration?.toString() || '',
+      calories_burned: workout.calories_burned?.toString() || '',
+      date: workout.date
+    });
+    setVisible(true);
+  };
+
+  const handleSave = async () => {
+    try {
+      const workoutData = {
+        ...newWorkout,
+        duration: parseInt(newWorkout.duration) || 0,
+        calories_burned: parseInt(newWorkout.calories_burned) || 0
+      };
+
+      if (editingWorkout) {
+        await workoutsApi.update(editingWorkout.id, workoutData);
+      } else {
+        await workoutsApi.create(workoutData);
+      }
+
+      setVisible(false);
+      setEditingWorkout(null);
+      setNewWorkout({
+        name: '',
+        description: '',
+        duration: '',
+        calories_burned: '',
+        date: new Date().toISOString()
+      });
+      loadWorkouts();
+    } catch (error) {
+      logger.error('Error saving workout:', error);
+    }
+  };
+
   const renderWorkoutItem = ({ item }: { item: Workout }) => (
     <View style={styles.workoutItem}>
-      <Text style={styles.workoutName}>{item.name || 'Без названия'}</Text>
+      <View style={styles.workoutHeader}>
+        <Text style={styles.workoutName}>{item.name || 'Без названия'}</Text>
+        <View style={styles.actionButtons}>
+          <IconButton
+            icon="pencil"
+            size={20}
+            onPress={() => handleEdit(item)}
+          />
+          <IconButton
+            icon="delete"
+            size={20}
+            onPress={() => handleDelete(item)}
+          />
+        </View>
+      </View>
       <Text>{item.description || 'Без описания'}</Text>
       <Text>Длительность: {item.duration || 0} мин</Text>
       <Text>Калории: {item.calories_burned || 0} ккал</Text>
@@ -55,16 +133,31 @@ export default function WorkoutsScreen() {
       <FAB
         icon="plus"
         style={styles.fab}
-        onPress={() => setVisible(true)}
+        onPress={() => {
+          setEditingWorkout(null);
+          setNewWorkout({
+            name: '',
+            description: '',
+            duration: '',
+            calories_burned: '',
+            date: new Date().toISOString()
+          });
+          setVisible(true);
+        }}
       />
 
       <Portal>
         <Modal
           visible={visible}
-          onDismiss={() => setVisible(false)}
+          onDismiss={() => {
+            setVisible(false);
+            setEditingWorkout(null);
+          }}
           contentContainerStyle={styles.modal}
         >
-          <Text style={styles.modalTitle}>Новая тренировка</Text>
+          <Text style={styles.modalTitle}>
+            {editingWorkout ? 'Редактировать тренировку' : 'Новая тренировка'}
+          </Text>
           <TextInput
             label="Название"
             value={newWorkout.name}
@@ -93,29 +186,10 @@ export default function WorkoutsScreen() {
           />
           <Button 
             mode="contained" 
-            onPress={async () => {
-              try {
-                await workoutsApi.create({
-                  ...newWorkout,
-                  duration: parseInt(newWorkout.duration) || 0,
-                  calories_burned: parseInt(newWorkout.calories_burned) || 0
-                });
-                setVisible(false);
-                setNewWorkout({
-                  name: '',
-                  description: '',
-                  duration: '',
-                  calories_burned: '',
-                  date: new Date().toISOString()
-                });
-                loadWorkouts();
-              } catch (error) {
-                logger.error('Error adding workout:', error);
-              }
-            }}
+            onPress={handleSave}
             style={styles.button}
           >
-            Добавить
+            {editingWorkout ? 'Сохранить' : 'Добавить'}
           </Button>
         </Modal>
       </Portal>
@@ -135,9 +209,19 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     elevation: 2,
   },
+  workoutHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
   workoutName: {
     fontSize: 18,
     fontWeight: 'bold',
+    flex: 1,
+  },
+  actionButtons: {
+    flexDirection: 'row',
   },
   fab: {
     position: 'absolute',

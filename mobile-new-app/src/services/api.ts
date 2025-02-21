@@ -18,6 +18,7 @@ const api = axios.create({
     'Content-Type': 'application/json',
   },
   timeout: 10000, // Добавляем таймаут в 10 секунд
+  withCredentials: true
 });
 
 // Request interceptor with logging
@@ -92,8 +93,17 @@ export const authApi = {
     return response;
   },
   logout: async () => {
-    await AsyncStorage.multiRemove(['access_token', 'refresh_token']);
-    return api.post('/auth/logout/');
+    try {
+      const refreshToken = await AsyncStorage.getItem('refresh_token');
+      if (refreshToken) {
+        // Используем interceptor, который автоматически добавит access token
+        await api.post('/auth/logout/', { refresh: refreshToken });
+      }
+    } catch (error) {
+      console.error('Logout error:', error);
+    } finally {
+      await AsyncStorage.multiRemove(['access_token', 'refresh_token']);
+    }
   },
   register: (userData: any) => 
     api.post('/auth/register/', userData),

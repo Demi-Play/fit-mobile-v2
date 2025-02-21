@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { View, FlatList, StyleSheet } from 'react-native';
-import { Text, Portal, Modal, TextInput, Button, SegmentedButtons } from 'react-native-paper';
+import { View, FlatList, StyleSheet, Alert } from 'react-native';
+import { Text, Portal, Modal, TextInput, Button, SegmentedButtons, IconButton } from 'react-native-paper';
 import { Goal } from '../../../src/types';
 import { goalsApi } from '../../../src/services/api';
 import { logger } from '../../../src/utils/logger';
@@ -11,14 +11,33 @@ export default function GoalsScreen() {
   const [goals, setGoals] = useState<Goal[]>([]);
   const [visible, setVisible] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [refreshing, setRefreshing] = useState(false);
+  const [editingGoal, setEditingGoal] = useState<Goal | null>(null);
   const [newGoal, setNewGoal] = useState({
+    name: '',
+    description: '',
+    category: 'weight',
+    goal_type: 'weight_loss',
+    target_weight: '',
     target_date: new Date().toISOString().split('T')[0],
-    category: 'workout' as Goal['category'],
     progress: 0,
-    goal_type: 'strength',
-    target_weight: '0'
+    achieved: false,
   });
+
+  const showModal = () => setVisible(true);
+  const hideModal = () => {
+    setVisible(false);
+    setEditingGoal(null);
+    setNewGoal({
+      name: '',
+      description: '',
+      category: 'weight',
+      goal_type: 'weight_loss',
+      target_weight: '',
+      target_date: new Date().toISOString().split('T')[0],
+      progress: 0,
+      achieved: false,
+    });
+  };
 
   const loadGoals = async () => {
     try {
@@ -27,59 +46,112 @@ export default function GoalsScreen() {
       setGoals(response.data || []);
     } catch (error) {
       logger.error('Error loading goals:', error);
+      Alert.alert('Ошибка', 'Не удалось загрузить цели');
     } finally {
       setLoading(false);
     }
   };
 
-  const onRefresh = async () => {
-    setRefreshing(true);
-    await loadGoals();
-    setRefreshing(false);
+  const handleDelete = async (goalId: number) => {
+    Alert.alert(
+      'Подтверждение',
+      'Вы уверены, что хотите удалить эту цель?',
+      [
+        { text: 'Отмена', style: 'cancel' },
+        {
+          text: 'Удалить',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              await goalsApi.delete(goalId);
+              await loadGoals();
+            } catch (error) {
+              logger.error('Error deleting goal:', error);
+              Alert.alert('Ошибка', 'Не удалось удалить цель');
+            }
+          },
+        },
+      ]
+    );
   };
 
-  const handleCreateGoal = async () => {
+  const handleEdit = (goal: Goal) => {
+    setEditingGoal(goal);
+    setNewGoal({
+      name: goal.name,
+      description: goal.description,
+      category: goal.category,
+      goal_type: goal.goal_type,
+      target_weight: goal.target_weight.toString(),
+      target_date: goal.target_date,
+      progress: goal.progress,
+      achieved: goal.achieved,
+    });
+    showModal();
+  };
+
+  const handleSave = async () => {
     try {
-      await goalsApi.create(newGoal);
-      setVisible(false);
-      setNewGoal({
-        target_date: new Date().toISOString().split('T')[0],
-        category: 'workout',
-        progress: 0,
-        goal_type: 'strength',
-        target_weight: '0'
-      });
-      loadGoals();
+      if (editingGoal) {
+        await goalsApi.update(editingGoal.id, {
+          ...newGoal,
+          target_weight: parseFloat(newGoal.target_weight),
+        });
+      } else {
+        await goalsApi.create({
+          ...newGoal,
+          target_weight: parseFloat(newGoal.target_weight),
+        });
+      }
+      await loadGoals();
+      hideModal();
     } catch (error) {
-      logger.error('Error creating goal:', error);
+      logger.error('Error saving goal:', error);
+      Alert.alert('Ошибка', 'Не удалось сохранить цель');
     }
   };
 
-  const handleToggleAchieved = async (goal: Goal) => {
+  const handleToggleAchieved = async (goalId: number, achieved: boolean) => {
     try {
-      await goalsApi.toggleAchieved(goal.id, !goal.achieved);
-      loadGoals();
+      await goalsApi.toggleAchieved(goalId, !achieved);
+      await loadGoals();
     } catch (error) {
       logger.error('Error toggling goal achievement:', error);
+      Alert.alert('Ошибка', 'Не удалось обновить статус цели');
     }
   };
 
-  const handleUpdateProgress = async (goal: Goal, progress: number) => {
+  const handleUpdateProgress = async (goalId: number, progress: number) => {
     try {
-      await goalsApi.updateProgress(goal.id, progress);
-      loadGoals();
+      await goalsApi.updateProgress(goalId, progress);
+      await loadGoals();
     } catch (error) {
       logger.error('Error updating goal progress:', error);
+      Alert.alert('Ошибка', 'Не удалось обновить прогресс');
     }
   };
 
-  const handleDelete = async (goal: Goal) => {
-    try {
-      await goalsApi.delete(goal.id);
-      loadGoals();
-    } catch (error) {
-      logger.error('Error deleting goal:', error);
-    }
+  const getGoalTypeLabel = (type: Goal['goal_type']) => {
+    const labels = {
+      weight_loss: 'Снижение веса',
+      weight_gain: 'Набор веса',
+      muscle_gain: 'Набор мышечной массы',
+      endurance: 'Выносливость',
+      flexibility: 'Гибкость',
+      strength: 'Сила',
+      other: 'Другое',
+    };
+    return labels[type] || type;
+  };
+
+  const getCategoryLabel = (category: Goal['category']) => {
+    const labels = {
+      weight: 'Вес',
+      workout: 'Тренировка',
+      nutrition: 'Питание',
+      other: 'Другое',
+    };
+    return labels[category] || category;
   };
 
   useEffect(() => {
@@ -88,96 +160,94 @@ export default function GoalsScreen() {
 
   return (
     <View style={styles.container}>
+      <FlatList
+        data={goals}
+        renderItem={({ item }) => (
+          <GoalCard
+            goal={item}
+            onToggleAchieved={() => handleToggleAchieved(item.id, item.achieved)}
+            onUpdateProgress={(progress) => handleUpdateProgress(item.id, progress)}
+            onDelete={() => handleDelete(item.id)}
+            onEdit={() => handleEdit(item)}
+            getGoalTypeLabel={getGoalTypeLabel}
+            getCategoryLabel={getCategoryLabel}
+          />
+        )}
+        keyExtractor={(item) => item.id.toString()}
+        refreshing={loading}
+        onRefresh={loadGoals}
+        contentContainerStyle={styles.list}
+      />
+
       <Portal>
         <Modal
           visible={visible}
-          onDismiss={() => setVisible(false)}
+          onDismiss={hideModal}
           contentContainerStyle={styles.modalContent}
         >
-          <Text style={styles.modalTitle}>Новая цель</Text>
+          <TextInput
+            label="Название"
+            value={newGoal.name}
+            onChangeText={(text) => setNewGoal({ ...newGoal, name: text })}
+            style={styles.input}
+          />
+          <TextInput
+            label="Описание"
+            value={newGoal.description}
+            onChangeText={(text) => setNewGoal({ ...newGoal, description: text })}
+            style={styles.input}
+            multiline
+          />
+          <TextInput
+            label="Целевой вес (кг)"
+            value={newGoal.target_weight}
+            onChangeText={(text) => setNewGoal({ ...newGoal, target_weight: text })}
+            style={styles.input}
+            keyboardType="numeric"
+          />
           <TextInput
             label="Дата достижения"
             value={newGoal.target_date}
-            onChangeText={(text: string) => setNewGoal({ ...newGoal, target_date: text })}
+            onChangeText={(text) => setNewGoal({ ...newGoal, target_date: text })}
             style={styles.input}
           />
           <SegmentedButtons
             value={newGoal.category}
-            onValueChange={(value: string) => 
+            onValueChange={(value) =>
               setNewGoal({ ...newGoal, category: value as Goal['category'] })
             }
             buttons={[
+              { value: 'weight', label: 'Вес' },
               { value: 'workout', label: 'Тренировка' },
               { value: 'nutrition', label: 'Питание' },
-              { value: 'weight', label: 'Вес' },
               { value: 'other', label: 'Другое' },
             ]}
             style={styles.segmentedButtons}
           />
           <SegmentedButtons
             value={newGoal.goal_type}
-            onValueChange={(value: string) => setNewGoal({ ...newGoal, goal_type: value })}
+            onValueChange={(value) =>
+              setNewGoal({ ...newGoal, goal_type: value as Goal['goal_type'] })
+            }
             buttons={[
-              { value: 'strength', label: 'Сила' },
-              { value: 'endurance', label: 'Выносливость' },
               { value: 'weight_loss', label: 'Снижение веса' },
+              { value: 'weight_gain', label: 'Набор веса' },
               { value: 'muscle_gain', label: 'Набор массы' },
+              { value: 'endurance', label: 'Выносливость' },
+              { value: 'flexibility', label: 'Гибкость' },
+              { value: 'strength', label: 'Сила' },
+              { value: 'other', label: 'Другое' },
             ]}
             style={styles.segmentedButtons}
           />
-          <TextInput
-            label="Целевой вес (кг)"
-            value={newGoal.target_weight}
-            onChangeText={(text: string) => setNewGoal({ ...newGoal, target_weight: text })}
-            keyboardType="numeric"
-            style={styles.input}
+          <Button
+            title={editingGoal ? 'Сохранить изменения' : 'Добавить цель'}
+            onPress={handleSave}
           />
-          <View style={styles.modalActions}>
-            <Button onPress={() => setVisible(false)} style={styles.modalButton}>
-              Отмена
-            </Button>
-            <Button 
-              mode="contained" 
-              onPress={handleCreateGoal} 
-              style={styles.modalButton}
-              loading={loading}
-            >
-              Создать
-            </Button>
-          </View>
         </Modal>
       </Portal>
 
-      <FlatList
-        data={goals}
-        renderItem={({ item }) => (
-          <GoalCard
-            goal={item}
-            onToggleAchieved={() => handleToggleAchieved(item)}
-            onUpdateProgress={(progress) => handleUpdateProgress(item, progress)}
-            onDelete={() => handleDelete(item)}
-            onEdit={() => {}} // TODO: Implement edit functionality
-          />
-        )}
-        keyExtractor={(item) => item.id.toString()}
-        refreshing={refreshing}
-        onRefresh={onRefresh}
-        contentContainerStyle={styles.list}
-      />
-
-      {/* <Button
-        mode="contained"
-        onPress={() => setVisible(true)}
-        style={styles.fab}
-        icon="plus"
-      >
-        Добавить цель
-      </Button> */}
-      <FAB
-        icon="plus"
-        style={styles.fab}
-        onPress={() => setVisible(true)}
-      />
+      <FAB icon="plus" style={styles.fab} onPress={showModal} />
     </View>
   );
 }
@@ -202,23 +272,10 @@ const styles = StyleSheet.create({
     margin: 20,
     borderRadius: 8,
   },
-  modalTitle: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    marginBottom: 20,
-  },
   input: {
     marginBottom: 12,
   },
   segmentedButtons: {
-    marginBottom: 20,
-  },
-  modalActions: {
-    flexDirection: 'row',
-    justifyContent: 'flex-end',
-    gap: 8,
-  },
-  modalButton: {
-    minWidth: 100,
+    marginBottom: 12,
   },
 }); 

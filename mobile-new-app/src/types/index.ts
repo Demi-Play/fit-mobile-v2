@@ -10,7 +10,6 @@ export interface Workout {
 
 export interface Nutrition {
   id: number;
-  name: string;
   calories: number;
   protein: number;
   carbohydrates: number;
@@ -30,7 +29,7 @@ export interface Goal {
   achieved: boolean;
   progress: number;
   category: 'workout' | 'nutrition' | 'weight' | 'other';
-  goal_type: 'strength' | 'endurance' | 'weight_loss' | 'muscle_gain';
+  goal_type: 'strength' | 'endurance' | 'weight_loss' | 'weight_gain' | 'muscle_gain' | 'flexibility' | 'other';
   target_weight: string;
   created_at?: string;
   updated_at?: string;

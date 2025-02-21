@@ -1,6 +1,6 @@
 import { View, Text, StyleSheet } from 'react-native';
 import { Button } from 'react-native-paper';
-import { useAuth } from '../../../../src/context/AuthContext';
+import { useAuth } from '../../context/AuthContext';
 
 export default function ProfileScreen() {
   const { user, logout } = useAuth();

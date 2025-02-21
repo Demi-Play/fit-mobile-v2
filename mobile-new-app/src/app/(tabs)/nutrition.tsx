@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { View, FlatList, StyleSheet } from 'react-native';
-import { Text, FAB, Portal, Modal, TextInput, Button, SegmentedButtons } from 'react-native-paper';
+import { View, FlatList, StyleSheet, Alert } from 'react-native';
+import { Text, FAB, Portal, Modal, TextInput, Button, SegmentedButtons, IconButton } from 'react-native-paper';
 import { Nutrition } from '../../../src/types';
 import { nutritionApi } from '../../../src/services/api';
 import { logger } from '../../../src/utils/logger';
@@ -9,11 +9,11 @@ export default function NutritionScreen() {
   const [meals, setMeals] = useState<Nutrition[]>([]);
   const [visible, setVisible] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [editingMeal, setEditingMeal] = useState<Nutrition | null>(null);
   const [newMeal, setNewMeal] = useState({
-    name: '',
     calories: '',
     protein: '',
-    carbs: '',
+    carbohydrates: '',
     fats: '',
     meal_type: 'breakfast' as Nutrition['meal_type'],
     date: new Date().toISOString()
@@ -35,34 +35,90 @@ export default function NutritionScreen() {
     loadMeals();
   }, []);
 
-  const handleAddMeal = async () => {
+  const handleDelete = (meal: Nutrition) => {
+    Alert.alert(
+      "Удаление записи",
+      "Вы уверены, что хотите удалить эту запись?",
+      [
+        { text: "Отмена", style: "cancel" },
+        {
+          text: "Удалить",
+          style: "destructive",
+          onPress: async () => {
+            try {
+              await nutritionApi.delete(meal.id);
+              loadMeals();
+            } catch (error) {
+              logger.error('Error deleting meal:', error);
+            }
+          }
+        }
+      ]
+    );
+  };
+
+  const handleEdit = (meal: Nutrition) => {
+    setEditingMeal(meal);
+    setNewMeal({
+      calories: meal.calories?.toString() || '',
+      protein: meal.protein?.toString() || '',
+      carbohydrates: meal.carbohydrates?.toString() || '',
+      fats: meal.fats?.toString() || '',
+      meal_type: meal.meal_type,
+      date: meal.date || new Date().toISOString()
+    });
+    setVisible(true);
+  };
+
+  const handleSave = async () => {
     try {
-      await nutritionApi.create({
+      const mealData = {
         ...newMeal,
-        calories: parseInt(newMeal.calories),
-        protein: parseFloat(newMeal.protein),
-        carbohydrates: parseFloat(newMeal.carbohydrates),
-        fats: parseFloat(newMeal.fats)
-      });
+        calories: parseInt(newMeal.calories) || 0,
+        protein: parseFloat(newMeal.protein) || 0,
+        carbohydrates: parseFloat(newMeal.carbohydrates) || 0,
+        fats: parseFloat(newMeal.fats) || 0
+      };
+
+      if (editingMeal) {
+        await nutritionApi.update(editingMeal.id, mealData);
+      } else {
+        await nutritionApi.create(mealData);
+      }
+
       setVisible(false);
+      setEditingMeal(null);
       setNewMeal({
         calories: '',
         protein: '',
-        carbs: '',
+        carbohydrates: '',
         fats: '',
         meal_type: 'breakfast',
         date: new Date().toISOString()
       });
       loadMeals();
     } catch (error) {
-      logger.error('Error adding meal:', error);
+      logger.error('Error saving meal:', error);
     }
   };
 
   const renderMealItem = ({ item }: { item: Nutrition }) => (
     <View style={styles.mealItem}>
-      {/* <Text style={styles.mealName}>{item.name || 'Без названия'}</Text> */}
-      <Text style={styles.mealName}>{getMealTypeLabel(item.meal_type)}</Text>
+      <View style={styles.mealHeader}>
+        <Text style={styles.mealName}>{getMealTypeLabel(item.meal_type)}</Text>
+        <View style={styles.actionButtons}>
+          <IconButton
+            icon="pencil"
+            size={20}
+            onPress={() => handleEdit(item)}
+          />
+          <IconButton
+            icon="delete"
+            size={20}
+            onPress={() => handleDelete(item)}
+          />
+        </View>
+      </View>
       <Text>Калории: {item.calories || 0} ккал</Text>
       <Text>Белки: {item.protein || 0}г</Text>
       <Text>Углеводы: {item.carbohydrates || 0}г</Text>
@@ -93,18 +149,16 @@ export default function NutritionScreen() {
       <Portal>
         <Modal
           visible={visible}
-          onDismiss={() => setVisible(false)}
+          onDismiss={() => {
+            setVisible(false);
+            setEditingMeal(null);
+          }}
           contentContainerStyle={styles.modal}
         >
           <View style={styles.modalContent}>
-            <Text style={styles.modalTitle}>Добавить приём пищи</Text>
-            
-            {/* <TextInput
-              label="Название"
-              value={newMeal.name}
-              onChangeText={(text: string) => setNewMeal({...newMeal, name: text})}
-              style={styles.input}
-            /> */}
+            <Text style={styles.modalTitle}>
+              {editingMeal ? 'Редактировать приём пищи' : 'Добавить приём пищи'}
+            </Text>
 
             <SegmentedButtons
               value={newMeal.meal_type}
@@ -150,8 +204,8 @@ export default function NutritionScreen() {
               style={styles.input}
             />
 
-            <Button mode="contained" onPress={handleAddMeal} style={styles.button}>
-              Добавить
+            <Button mode="contained" onPress={handleSave} style={styles.button}>
+              {editingMeal ? 'Сохранить' : 'Добавить'}
             </Button>
           </View>
         </Modal>
@@ -160,7 +214,18 @@ export default function NutritionScreen() {
       <FAB
         icon="plus"
         style={styles.fab}
-        onPress={() => setVisible(true)}
+        onPress={() => {
+          setEditingMeal(null);
+          setNewMeal({
+            calories: '',
+            protein: '',
+            carbohydrates: '',
+            fats: '',
+            meal_type: 'breakfast',
+            date: new Date().toISOString()
+          });
+          setVisible(true);
+        }}
       />
     </View>
   );
@@ -179,15 +244,20 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     elevation: 2,
   },
+  mealHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
   mealName: {
     fontSize: 18,
     fontWeight: 'bold',
     marginBottom: 4,
+    flex: 1,
   },
-  mealType: {
-    fontSize: 16,
-    color: '#666',
-    marginBottom: 8,
+  actionButtons: {
+    flexDirection: 'row',
   },
   modal: {
     backgroundColor: 'white',

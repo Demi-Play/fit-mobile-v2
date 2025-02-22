@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, FlatList, StyleSheet, Alert } from 'react-native';
+import { View, FlatList, StyleSheet, Alert, ScrollView } from 'react-native';
 import { Text, Portal, Modal, TextInput, Button, SegmentedButtons, IconButton } from 'react-native-paper';
 import { Goal } from '../../../src/types';
 import { goalsApi } from '../../../src/services/api';
@@ -185,65 +185,73 @@ export default function GoalsScreen() {
           onDismiss={hideModal}
           contentContainerStyle={styles.modalContent}
         >
-          <TextInput
-            label="Название"
-            value={newGoal.name}
-            onChangeText={(text) => setNewGoal({ ...newGoal, name: text })}
-            style={styles.input}
-          />
-          <TextInput
-            label="Описание"
-            value={newGoal.description}
-            onChangeText={(text) => setNewGoal({ ...newGoal, description: text })}
-            style={styles.input}
-            multiline
-          />
-          <TextInput
-            label="Целевой вес (кг)"
-            value={newGoal.target_weight}
-            onChangeText={(text) => setNewGoal({ ...newGoal, target_weight: text })}
-            style={styles.input}
-            keyboardType="numeric"
-          />
-          <TextInput
-            label="Дата достижения"
-            value={newGoal.target_date}
-            onChangeText={(text) => setNewGoal({ ...newGoal, target_date: text })}
-            style={styles.input}
-          />
-          <SegmentedButtons
-            value={newGoal.category}
-            onValueChange={(value) =>
-              setNewGoal({ ...newGoal, category: value as Goal['category'] })
-            }
-            buttons={[
-              { value: 'weight', label: 'Вес' },
-              { value: 'workout', label: 'Тренировка' },
-              { value: 'nutrition', label: 'Питание' },
-              { value: 'other', label: 'Другое' },
-            ]}
-            style={styles.segmentedButtons}
-          />
-          <SegmentedButtons
-            value={newGoal.goal_type}
-            onValueChange={(value) =>
-              setNewGoal({ ...newGoal, goal_type: value as Goal['goal_type'] })
-            }
-            buttons={[
-              { value: 'weight_loss', label: 'Снижение веса' },
-              { value: 'weight_gain', label: 'Набор веса' },
-              { value: 'muscle_gain', label: 'Набор массы' },
-              { value: 'endurance', label: 'Выносливость' },
-              { value: 'flexibility', label: 'Гибкость' },
-              { value: 'strength', label: 'Сила' },
-              { value: 'other', label: 'Другое' },
-            ]}
-            style={styles.segmentedButtons}
-          />
-          <Button
-            title={editingGoal ? 'Сохранить изменения' : 'Добавить цель'}
-            onPress={handleSave}
-          />
+          <ScrollView style={styles.modalScrollView}>
+            <Text style={styles.modalTitle}>
+              {editingGoal ? 'Редактировать цель' : 'Новая цель'}
+            </Text>
+            <TextInput
+              label="Название"
+              value={newGoal.name}
+              onChangeText={(text) => setNewGoal({ ...newGoal, name: text })}
+              style={styles.input}
+            />
+            <TextInput
+              label="Описание"
+              value={newGoal.description}
+              onChangeText={(text) => setNewGoal({ ...newGoal, description: text })}
+              style={styles.input}
+              multiline
+            />
+            <TextInput
+              label="Целевой вес (кг)"
+              value={newGoal.target_weight}
+              onChangeText={(text) => setNewGoal({ ...newGoal, target_weight: text })}
+              style={styles.input}
+              keyboardType="numeric"
+            />
+            <TextInput
+              label="Дата достижения"
+              value={newGoal.target_date}
+              onChangeText={(text) => setNewGoal({ ...newGoal, target_date: text })}
+              style={styles.input}
+            />
+            <SegmentedButtons
+              value={newGoal.category}
+              onValueChange={(value) =>
+                setNewGoal({ ...newGoal, category: value as Goal['category'] })
+              }
+              buttons={[
+                { value: 'weight', label: 'Вес' },
+                { value: 'workout', label: 'Тренировка' },
+                { value: 'nutrition', label: 'Питание' },
+                { value: 'other', label: 'Другое' },
+              ]}
+              style={styles.segmentedButtons}
+            />
+            <SegmentedButtons
+              value={newGoal.goal_type}
+              onValueChange={(value) =>
+                setNewGoal({ ...newGoal, goal_type: value as Goal['goal_type'] })
+              }
+              buttons={[
+                { value: 'weight_loss', label: 'Снижение веса' },
+                { value: 'weight_gain', label: 'Набор веса' },
+                { value: 'muscle_gain', label: 'Набор массы' },
+                { value: 'endurance', label: 'Выносливость' },
+                { value: 'flexibility', label: 'Гибкость' },
+                { value: 'strength', label: 'Сила' },
+                { value: 'other', label: 'Другое' },
+              ]}
+              style={styles.segmentedButtons}
+            />
+            <Button
+              mode="contained"
+              onPress={handleSave}
+              style={styles.saveButton}
+            >
+              {editingGoal ? 'Сохранить' : 'Добавить'}
+            </Button>
+          </ScrollView>
         </Modal>
       </Portal>
 
@@ -271,11 +279,24 @@ const styles = StyleSheet.create({
     padding: 20,
     margin: 20,
     borderRadius: 8,
+    maxHeight: '80%',
   },
   input: {
     marginBottom: 12,
   },
   segmentedButtons: {
+    marginBottom: 12,
+  },
+  saveButton: {
+    marginTop: 12,
+    marginBottom: 20,
+  },
+  modalScrollView: {
+    paddingBottom: 20,
+  },
+  modalTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
     marginBottom: 12,
   },
 }); 

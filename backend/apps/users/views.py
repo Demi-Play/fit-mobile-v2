@@ -14,6 +14,9 @@ from .serializers import (
 )
 from rest_framework.views import APIView
 import logging
+from django.views.generic import TemplateView
+from django.conf import settings
+import os
 
 User = get_user_model()
 logger = logging.getLogger(__name__)
@@ -268,3 +271,14 @@ class UserView(APIView):
     def get(self, request):
         serializer = UserSerializer(request.user)
         return Response(serializer.data)
+
+class LandingPageView(TemplateView):
+    template_name = 'landing.html'
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        # Путь к APK файлу
+        apk_path = os.path.join(settings.MEDIA_ROOT, 'apk', 'fit-mobile.apk')
+        context['apk_exists'] = os.path.exists(apk_path)
+        context['apk_url'] = settings.MEDIA_URL + 'apk/fit-mobile.apk' if context['apk_exists'] else None
+        return context

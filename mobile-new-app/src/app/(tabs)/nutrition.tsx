@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, FlatList, StyleSheet, Alert } from 'react-native';
+import { View, FlatList, StyleSheet, Alert, ScrollView } from 'react-native';
 import { Text, FAB, Portal, Modal, TextInput, Button, SegmentedButtons, IconButton } from 'react-native-paper';
 import { Nutrition } from '../../../src/types';
 import { nutritionApi } from '../../../src/services/api';
@@ -136,6 +136,11 @@ export default function NutritionScreen() {
     return types[type] || type;
   };
 
+  const hideModal = () => {
+    setVisible(false);
+    setEditingMeal(null);
+  };
+
   return (
     <View style={styles.container}>
       <FlatList
@@ -149,64 +154,68 @@ export default function NutritionScreen() {
       <Portal>
         <Modal
           visible={visible}
-          onDismiss={() => {
-            setVisible(false);
-            setEditingMeal(null);
-          }}
+          onDismiss={hideModal}
           contentContainerStyle={styles.modal}
         >
           <View style={styles.modalContent}>
-            <Text style={styles.modalTitle}>
-              {editingMeal ? 'Редактировать приём пищи' : 'Добавить приём пищи'}
-            </Text>
+            <ScrollView style={styles.modalScrollView}>
+              <Text style={styles.modalTitle}>
+                {editingMeal ? 'Редактировать приём пищи' : 'Добавить приём пищи'}
+              </Text>
 
-            <SegmentedButtons
-              value={newMeal.meal_type}
-              onValueChange={(value: string) => setNewMeal({...newMeal, meal_type: value as Nutrition['meal_type']})}
-              buttons={[
-                { value: 'breakfast', label: 'Завтрак' },
-                { value: 'lunch', label: 'Обед' },
-                { value: 'dinner', label: 'Ужин' },
-                { value: 'snack', label: 'Перекус' },
-              ]}
-              style={styles.segmentedButtons}
-            />
+              <SegmentedButtons
+                value={newMeal.meal_type}
+                onValueChange={(value: string) => setNewMeal({...newMeal, meal_type: value as Nutrition['meal_type']})}
+                buttons={[
+                  { value: 'breakfast', label: 'Завтрак' },
+                  { value: 'lunch', label: 'Обед' },
+                  { value: 'dinner', label: 'Ужин' },
+                  { value: 'snack', label: 'Перекус' },
+                ]}
+                style={styles.segmentedButtons}
+              />
 
-            <TextInput
-              label="Калории (ккал)"
-              value={newMeal.calories}
-              onChangeText={(text: string) => setNewMeal({...newMeal, calories: text})}
-              keyboardType="numeric"
-              style={styles.input}
-            />
+              <TextInput
+                label="Калории (ккал)"
+                value={newMeal.calories}
+                onChangeText={(text: string) => setNewMeal({...newMeal, calories: text})}
+                keyboardType="numeric"
+                style={styles.input}
+              />
 
-            <TextInput
-              label="Белки (г)"
-              value={newMeal.protein}
-              onChangeText={(text: string) => setNewMeal({...newMeal, protein: text})}
-              keyboardType="numeric"
-              style={styles.input}
-            />
+              <TextInput
+                label="Белки (г)"
+                value={newMeal.protein}
+                onChangeText={(text: string) => setNewMeal({...newMeal, protein: text})}
+                keyboardType="numeric"
+                style={styles.input}
+              />
 
-            <TextInput
-              label="Углеводы (г)"
-              value={newMeal.carbohydrates}
-              onChangeText={(text: string) => setNewMeal({...newMeal, carbohydrates: text})}
-              keyboardType="numeric"
-              style={styles.input}
-            />
+              <TextInput
+                label="Углеводы (г)"
+                value={newMeal.carbohydrates}
+                onChangeText={(text: string) => setNewMeal({...newMeal, carbohydrates: text})}
+                keyboardType="numeric"
+                style={styles.input}
+              />
 
-            <TextInput
-              label="Жиры (г)"
-              value={newMeal.fats}
-              onChangeText={(text: string) => setNewMeal({...newMeal, fats: text})}
-              keyboardType="numeric"
-              style={styles.input}
-            />
+              <TextInput
+                label="Жиры (г)"
+                value={newMeal.fats}
+                onChangeText={(text: string) => setNewMeal({...newMeal, fats: text})}
+                keyboardType="numeric"
+                style={styles.input}
+              />
 
-            <Button mode="contained" onPress={handleSave} style={styles.button}>
-              {editingMeal ? 'Сохранить' : 'Добавить'}
-            </Button>
+              <Button 
+                mode="contained" 
+                onPress={handleSave}
+                loading={loading}
+                style={styles.button}
+              >
+                {editingMeal ? 'Сохранить' : 'Добавить'}
+              </Button>
+            </ScrollView>
           </View>
         </Modal>
       </Portal>
@@ -264,9 +273,13 @@ const styles = StyleSheet.create({
     margin: 20,
     borderRadius: 8,
     padding: 20,
+    maxHeight: '80%',
   },
   modalContent: {
-    maxHeight: '80%',
+    maxHeight: '100%',
+  },
+  modalScrollView: {
+    paddingBottom: 20,
   },
   modalTitle: {
     fontSize: 20,
@@ -282,6 +295,7 @@ const styles = StyleSheet.create({
   },
   button: {
     marginTop: 16,
+    marginBottom: 20,
   },
   fab: {
     position: 'absolute',

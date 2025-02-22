@@ -6,7 +6,7 @@ from .views import (
     LoginView, 
     LogoutView,
     UserProfileView, 
-    UserView
+    UserView,
 )
 
 router = DefaultRouter()

@@ -21,8 +21,9 @@ logger = logging.getLogger(__name__)
 # Create your views here.
 
 class UserViewSet(viewsets.ModelViewSet):
+    queryset = User.objects.all()
     serializer_class = UserSerializer
-    permission_classes = [AllowAny]  # Разрешаем доступ для регистрации
+    permission_classes = [IsAuthenticated]
 
     def get_queryset(self):
         if self.action in ['register']:
@@ -42,17 +43,22 @@ class UserViewSet(viewsets.ModelViewSet):
             }, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
-    @action(detail=False, methods=['get', 'put', 'patch'], permission_classes=[IsAuthenticated])
+    @action(detail=False, methods=['get', 'put'])
     def profile(self, request):
+        """Get or update user profile"""
         if request.method == 'GET':
             serializer = UserProfileSerializer(request.user)
+            logger.info(f"Getting profile for user {request.user.username}")
             return Response(serializer.data)
-        
-        serializer = UserProfileSerializer(request.user, data=request.data, partial=True)
-        if serializer.is_valid():
-            serializer.save()
-            return Response(serializer.data)
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        elif request.method == 'PUT':
+            serializer = UserProfileSerializer(request.user, data=request.data, partial=True)
+            logger.info(f"Updating profile for user {request.user.username} with data: {request.data}")
+            if serializer.is_valid():
+                serializer.save()
+                logger.info(f"Profile updated successfully for user {request.user.username}")
+                return Response(serializer.data)
+            logger.error(f"Profile update failed for user {request.user.username}: {serializer.errors}")
+            return Response(serializer.errors, status=400)
 
     @action(detail=False, methods=['post'], permission_classes=[IsAuthenticated])
     def change_password(self, request):
@@ -175,6 +181,15 @@ class LoginView(APIView):
         user = authenticate(username=username, password=password)
         
         if user:
+            # Очищаем все предыдущие токены пользователя
+            try:
+                from rest_framework_simplejwt.token_blacklist.models import OutstandingToken
+                OutstandingToken.objects.filter(user=user).delete()
+                logger.info(f"Cleared previous sessions for user {username}")
+            except Exception as e:
+                logger.error(f"Error clearing previous sessions: {e}")
+
+            # Создаем новый токен
             refresh = RefreshToken.for_user(user)
             return Response({
                 'user': UserSerializer(user).data,
@@ -205,14 +220,33 @@ class RegisterView(APIView):
 class LogoutView(APIView):
     permission_classes = [IsAuthenticated]
 
-    def post(self, request):
+    def get(self, request):
+        """Выход пользователя из системы"""
         try:
-            refresh_token = request.data["refresh"]
-            token = RefreshToken(refresh_token)
-            token.blacklist()
-            return Response(status=status.HTTP_205_RESET_CONTENT)
-        except Exception:
-            return Response(status=status.HTTP_400_BAD_REQUEST)
+            # Получаем токен из заголовка
+            auth_header = request.headers.get('Authorization')
+            if not auth_header or not auth_header.startswith('Bearer '):
+                return Response(
+                    {'error': 'Invalid authorization header'},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+            
+            # Извлекаем токен
+            token = auth_header.split(' ')[1]
+            
+            # Добавляем токен в черный список
+            token_obj = RefreshToken(token)
+            token_obj.blacklist()
+            
+            logger.info(f"User {request.user.username} logged out successfully")
+            return Response({'message': 'Successfully logged out'}, status=status.HTTP_200_OK)
+            
+        except Exception as e:
+            logger.error(f"Logout error: {e}")
+            return Response(
+                {'error': 'Failed to logout'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
 
 class UserProfileView(APIView):
     permission_classes = [IsAuthenticated]

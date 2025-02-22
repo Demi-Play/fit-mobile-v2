@@ -30,7 +30,8 @@ export const GoalCard: React.FC<GoalCardProps> = ({
     <Card>
       <View style={styles.header}>
         <View style={styles.titleContainer}>
-          <Text style={styles.category}>{getCategoryLabel(goal.category)}</Text>
+          <Text style={styles.category}>{getCategoryLabel(goal.name)}</Text>
+          <Text style={styles.title}>{getCategoryLabel(goal.description)}</Text>
           <Text style={styles.goalType}>{getGoalTypeLabel(goal.goal_type)}</Text>
         </View>
         <View style={styles.actionButtons}>
@@ -67,7 +68,7 @@ export const GoalCard: React.FC<GoalCardProps> = ({
       </View>
 
       <Button
-        title={goal.achieved ? "Не выполнено" : "Выполнено"}
+        title={goal.achieved ? "Отменить" : "Выполнено"}
         onPress={onToggleAchieved}
         variant={goal.achieved ? "secondary" : "primary"}
       />

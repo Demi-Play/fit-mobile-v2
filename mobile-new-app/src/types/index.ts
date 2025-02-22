@@ -1,3 +1,16 @@
+export interface User {
+  id: number;
+  username: string;
+  email: string;
+  first_name: string;
+  last_name: string;
+  bio: string;
+  height: number | null;
+  weight: number | null;
+  age: number | null;
+  gender: 'M' | 'F' | 'O' | '';
+}
+
 export interface Workout {
   id: number;
   name: string;

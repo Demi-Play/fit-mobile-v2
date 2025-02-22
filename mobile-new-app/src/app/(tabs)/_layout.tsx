@@ -34,7 +34,7 @@ export default function TabLayout() {
               iconName = focused ? 'trophy' : 'trophy-outline';
               break;
             case 'profile/index':
-              iconName = focused ? 'person' : 'person-outline';
+              iconName = focused ? 'person' : 'settings-outline';
               break;
           }
 

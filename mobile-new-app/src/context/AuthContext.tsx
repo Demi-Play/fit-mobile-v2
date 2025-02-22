@@ -1,13 +1,9 @@
 import React, { createContext, useState, useContext } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import api from '../utils/api';
+import { authApi } from '../services/api';
 import { logger } from '../utils/logger';
-
-interface User {
-  id: number;
-  username: string;
-  email: string;
-}
+import { router } from 'expo-router';
+import { User } from '../types';
 
 interface AuthContextType {
   user: User | null;
@@ -15,6 +11,7 @@ interface AuthContextType {
   login: (username: string, password: string) => Promise<void>;
   logout: () => Promise<void>;
   register: (username: string, email: string, password: string) => Promise<void>;
+  updateUser: (userData: User) => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -23,21 +20,22 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(false);
 
+  const updateUser = (userData: User) => {
+    setUser(userData);
+    AsyncStorage.setItem('user', JSON.stringify(userData));
+  };
+
   const login = async (username: string, password: string) => {
     try {
       setLoading(true);
       logger.info('Attempting login', { username });
-      const response = await api.post('/auth/login/', { username, password });
+      const response = await authApi.login(username, password);
       
       if (!response.data || !response.data.user) {
         throw new Error('Invalid response data');
       }
       
-      const { user, access, refresh } = response.data;
-      
-      // Сохраняем токены
-      await AsyncStorage.setItem('access_token', access);
-      await AsyncStorage.setItem('refresh_token', refresh);
+      const { user } = response.data;
       
       // Сохраняем данные пользователя
       setUser(user);
@@ -55,16 +53,20 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const logout = async () => {
     try {
-      const refreshToken = await AsyncStorage.getItem('refresh_token');
-      await api.post('/auth/logout/', { refresh: refreshToken });
+      await authApi.logout();
       setUser(null);
       await AsyncStorage.multiRemove(['user', 'access_token', 'refresh_token']);
       logger.info('Logout successful');
+      
+      // Перенаправляем на страницу входа
+      router.replace('/login');
     } catch (error) {
       logger.error('Logout failed:', error);
-      // Даже если запрос не удался, очищаем локальные данные
+      // В любом случае очищаем локальные данные и состояние пользователя
       setUser(null);
       await AsyncStorage.multiRemove(['user', 'access_token', 'refresh_token']);
+      // Даже при ошибке перенаправляем на страницу входа
+      router.replace('/login');
       throw error;
     }
   };
@@ -72,21 +74,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const register = async (username: string, email: string, password: string) => {
     try {
       logger.info('Attempting registration', { username, email });
-      const response = await api.post('/auth/register/', { 
-        username, 
-        email, 
-        password 
-      });
+      const response = await authApi.register({ username, email, password });
       
       if (!response.data || !response.data.user) {
         throw new Error('Invalid response data');
       }
       
-      const { user, access, refresh } = response.data;
-      
-      // Сохраняем токены
-      await AsyncStorage.setItem('access_token', access);
-      await AsyncStorage.setItem('refresh_token', refresh);
+      const { user } = response.data;
       
       // Сохраняем данные пользователя
       setUser(user);
@@ -100,7 +94,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   return (
-    <AuthContext.Provider value={{ user, loading, login, logout, register }}>
+    <AuthContext.Provider value={{ user, loading, login, logout, register, updateUser }}>
       {children}
     </AuthContext.Provider>
   );

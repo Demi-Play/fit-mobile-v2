@@ -1,6 +1,6 @@
 import axios from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { Workout, Nutrition, Goal } from '../types';
+import { Workout, Nutrition, Goal, User } from '../types';
 import { Platform } from 'react-native';
 
 // Для Android эмулятора используем 10.0.2.2 вместо localhost
@@ -86,27 +86,29 @@ api.interceptors.response.use(
 // Auth API
 export const authApi = {
   login: async (username: string, password: string) => {
-    const response = await api.post('/token/', { username, password });
+    const response = await api.post('/auth/login/', { username, password });
     const { access, refresh } = response.data;
     await AsyncStorage.setItem('access_token', access);
     await AsyncStorage.setItem('refresh_token', refresh);
     return response;
   },
   logout: async () => {
-    try {
-      const refreshToken = await AsyncStorage.getItem('refresh_token');
-      if (refreshToken) {
-        // Используем interceptor, который автоматически добавит access token
-        await api.post('/auth/logout/', { refresh: refreshToken });
-      }
-    } catch (error) {
-      console.error('Logout error:', error);
-    } finally {
-      await AsyncStorage.multiRemove(['access_token', 'refresh_token']);
-    }
+    // Просто очищаем локальное хранилище
+    await AsyncStorage.multiRemove(['access_token', 'refresh_token']);
+    console.log('Local storage cleared');
   },
   register: (userData: any) => 
     api.post('/auth/register/', userData),
+  
+  // Методы для работы с профилем
+  getProfile: () => {
+    console.log('Fetching user profile');
+    return api.get('/auth/profile/');
+  },
+  updateProfile: (profileData: Partial<User>) => {
+    console.log('Updating user profile:', profileData);
+    return api.put('/auth/profile/', profileData);
+  },
 };
 
 // Workouts API
@@ -154,6 +156,10 @@ export const nutritionApi = {
   getAll: () => {
     console.log('Fetching all nutrition records');
     return api.get<Nutrition[]>('/nutrition/');
+  },
+  getTodayStats: () => {
+    console.log('Fetching today nutrition stats');
+    return api.get('/nutrition/today_stats/');
   },
   getById: (id: number) => {
     console.log(`Fetching nutrition record with id ${id}`);

@@ -1,9 +1,9 @@
 import { View, ScrollView, StyleSheet } from 'react-native';
 import { Text, Card, Button, useTheme, ActivityIndicator } from 'react-native-paper';
-import { Link } from 'expo-router';
+import { Link, useFocusEffect } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../../../src/context/AuthContext';
-import React, { useState, useEffect } from 'react';
+import React, { useState, useCallback } from 'react';
 import { workoutsApi, nutritionApi, goalsApi } from '../../../src/services/api';
 
 export default function TabsIndexScreen() {
@@ -29,61 +29,63 @@ export default function TabsIndexScreen() {
     },
   });
 
-  useEffect(() => {
-    const loadStats = async () => {
-      try {
-        setLoading(true);
-        
-        // Загрузка статистики тренировок
-        const workoutsResponse = await workoutsApi.getAll();
-        const workouts = workoutsResponse.data || [];
-        const totalCalories = workouts.reduce((sum, w) => sum + (w.calories_burned || 0), 0);
-        const lastWorkout = workouts.length > 0 ? workouts[0].date : null;
+  const loadStats = useCallback(async () => {
+    try {
+      setLoading(true);
+      
+      // Загрузка статистики тренировок
+      const workoutsResponse = await workoutsApi.getAll();
+      const workouts = workoutsResponse.data || [];
+      const totalCalories = workouts.reduce((sum, w) => sum + (w.calories_burned || 0), 0);
+      const lastWorkout = workouts.length > 0 ? workouts[0].date : null;
 
-        // Загрузка статистики питания
-        const nutritionResponse = await nutritionApi.getAll();
-        const todayNutrition = (nutritionResponse.data || []).filter(n => 
-          new Date(n.date || '').toDateString() === new Date().toDateString()
-        );
-        const todayStats = todayNutrition.reduce((acc, n) => ({
-          calories: acc.calories + (n.calories || 0),
-          protein: acc.protein + (n.protein || 0),
-          carbs: acc.carbs + (n.carbohydrates || 0),
-          fats: acc.fats + (n.fats || 0),
-        }), { calories: 0, protein: 0, carbs: 0, fats: 0 });
+      // Загрузка статистики питания
+      const nutritionResponse = await nutritionApi.getTodayStats();
+      console.log('Today nutrition stats:', nutritionResponse.data);
+      
+      const todayStats = {
+        calories: nutritionResponse.data.total_calories || 0,
+        protein: nutritionResponse.data.total_protein || 0,
+        carbs: nutritionResponse.data.total_carbohydrates || 0,
+        fats: nutritionResponse.data.total_fats || 0,
+      };
 
-        // Загрузка статистики целей
-        const goalsResponse = await goalsApi.getAll();
-        const goals = goalsResponse.data || [];
-        const achievedGoals = goals.filter(g => g.achieved).length;
+      // Загрузка статистики целей
+      const goalsResponse = await goalsApi.getAll();
+      const goals = goalsResponse.data || [];
+      const achievedGoals = goals.filter(g => g.achieved).length;
 
-        setStats({
-          workouts: {
-            total: workouts.length,
-            caloriesBurned: totalCalories,
-            lastWorkout,
-          },
-          nutrition: {
-            todayCalories: todayStats.calories,
-            todayProtein: todayStats.protein,
-            todayCarbs: todayStats.carbs,
-            todayFats: todayStats.fats,
-          },
-          goals: {
-            total: goals.length,
-            achieved: achievedGoals,
-            inProgress: goals.length - achievedGoals,
-          },
-        });
-      } catch (error) {
-        console.error('Error loading stats:', error);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    loadStats();
+      setStats({
+        workouts: {
+          total: workouts.length,
+          caloriesBurned: totalCalories,
+          lastWorkout,
+        },
+        nutrition: {
+          todayCalories: todayStats.calories,
+          todayProtein: todayStats.protein,
+          todayCarbs: todayStats.carbs,
+          todayFats: todayStats.fats,
+        },
+        goals: {
+          total: goals.length,
+          achieved: achievedGoals,
+          inProgress: goals.length - achievedGoals,
+        },
+      });
+    } catch (error) {
+      console.error('Error loading stats:', error);
+    } finally {
+      setLoading(false);
+    }
   }, []);
+
+  // Обновляем статистику при фокусе на экране
+  useFocusEffect(
+    useCallback(() => {
+      loadStats();
+    }, [loadStats])
+  );
 
   const renderStats = () => {
     if (loading) {

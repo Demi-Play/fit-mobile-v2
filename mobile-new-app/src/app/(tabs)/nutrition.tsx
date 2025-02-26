@@ -4,8 +4,12 @@ import { Text, FAB, Portal, Modal, TextInput, Button, SegmentedButtons, IconButt
 import { Nutrition } from '../../../src/types';
 import { nutritionApi } from '../../../src/services/api';
 import { logger } from '../../../src/utils/logger';
+import { useAuth } from '../../../src/context/AuthContext';
+import { MD3DarkTheme, MD3LightTheme } from 'react-native-paper';
 
 export default function NutritionScreen() {
+  const { theme } = useAuth();
+  const appliedTheme = theme === 'dark' ? MD3DarkTheme : MD3LightTheme;
   const [meals, setMeals] = useState<Nutrition[]>([]);
   const [visible, setVisible] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -142,7 +146,7 @@ export default function NutritionScreen() {
   };
 
   return (
-    <View style={styles.container}>
+    <View style={{ ...styles.container, backgroundColor: appliedTheme.colors.background }}>
       <FlatList
         data={meals}
         renderItem={renderMealItem}
@@ -155,7 +159,7 @@ export default function NutritionScreen() {
         <Modal
           visible={visible}
           onDismiss={hideModal}
-          contentContainerStyle={styles.modal}
+          contentContainerStyle={{ ...styles.modal, backgroundColor: appliedTheme.colors.surface }}
         >
           <View style={styles.modalContent}>
             <ScrollView style={styles.modalScrollView}>

@@ -6,8 +6,12 @@ import { goalsApi } from '../../../src/services/api';
 import { logger } from '../../../src/utils/logger';
 import { GoalCard } from '../../../src/components/goals/GoalCard';
 import { FAB } from 'react-native-paper';
+import { useAuth } from '../../../src/context/AuthContext';
+import { MD3DarkTheme, MD3LightTheme } from 'react-native-paper';
 
 export default function GoalsScreen() {
+  const { theme } = useAuth();
+  const appliedTheme = theme === 'dark' ? MD3DarkTheme : MD3LightTheme;
   const [goals, setGoals] = useState<Goal[]>([]);
   const [visible, setVisible] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -95,12 +99,16 @@ export default function GoalsScreen() {
       if (editingGoal) {
         await goalsApi.update(editingGoal.id, {
           ...newGoal,
-          target_weight: parseFloat(newGoal.target_weight),
+          target_weight: newGoal.target_weight.toString(),
+          category: newGoal.category as Goal['category'],
+          goal_type: newGoal.goal_type as Goal['goal_type'],
         });
       } else {
         await goalsApi.create({
           ...newGoal,
-          target_weight: parseFloat(newGoal.target_weight),
+          target_weight: newGoal.target_weight.toString(),
+          category: newGoal.category as Goal['category'],
+          goal_type: newGoal.goal_type as Goal['goal_type'],
         });
       }
       await loadGoals();
@@ -139,6 +147,9 @@ export default function GoalsScreen() {
       endurance: 'Выносливость',
       flexibility: 'Гибкость',
       strength: 'Сила',
+      weight: 'Вес',
+      workout: 'Тренировка',
+      nutrition: 'Питание',
       other: 'Другое',
     };
     return labels[type] || type;
@@ -159,14 +170,14 @@ export default function GoalsScreen() {
   }, []);
 
   return (
-    <View style={styles.container}>
+    <View style={{ ...styles.container, backgroundColor: appliedTheme.colors.background }}>
       <FlatList
         data={goals}
         renderItem={({ item }) => (
           <GoalCard
             goal={item}
             onToggleAchieved={() => handleToggleAchieved(item.id, item.achieved)}
-            onUpdateProgress={(progress) => handleUpdateProgress(item.id, progress)}
+            onUpdateProgress={(progress) => handleUpdateProgress(item.id, item.progress)}
             onDelete={() => handleDelete(item.id)}
             onEdit={() => handleEdit(item)}
             getGoalTypeLabel={getGoalTypeLabel}
@@ -183,7 +194,7 @@ export default function GoalsScreen() {
         <Modal
           visible={visible}
           onDismiss={hideModal}
-          contentContainerStyle={styles.modalContent}
+          contentContainerStyle={{ ...styles.modalContent, backgroundColor: appliedTheme.colors.surface }}
         >
           <ScrollView style={styles.modalScrollView}>
             <Text style={styles.modalTitle}>
@@ -215,29 +226,62 @@ export default function GoalsScreen() {
               onChangeText={(text) => setNewGoal({ ...newGoal, target_date: text })}
               style={styles.input}
             />
+            <Text>Текущий прогресс в процентах</Text>
             <SegmentedButtons
-              value={newGoal.category}
-              onValueChange={(value) =>
-                setNewGoal({ ...newGoal, category: value as Goal['category'] })
+              value={newGoal.progress}
+              onValueChange={(value: number) =>
+                setNewGoal({ ...newGoal, progress: value as Goal['progress'] })
+              }
+              buttons={[
+                { value: 0, label: 0 },
+                { value: 25, label: 25 },
+                { value: 50, label: 50 },
+              ]}
+              style={styles.segmentedButtons}
+            />
+            <SegmentedButtons
+              value={newGoal.progress}
+              onValueChange={(value: number) =>
+                setNewGoal({ ...newGoal, progress: value as Goal['progress'] })
+              }
+              buttons={[
+                { value: 65, label: 65 },
+                { value: 85, label: 85 },
+                { value: 100, label: 100 },
+              ]}
+              style={styles.segmentedButtons}
+            />
+            <Text>Тип цели</Text>
+            <SegmentedButtons
+              value={newGoal.goal_type}
+              onValueChange={(value: string) =>
+                setNewGoal({ ...newGoal, goal_type: value as Goal['goal_type'] })
               }
               buttons={[
                 { value: 'weight', label: 'Вес' },
                 { value: 'workout', label: 'Тренировка' },
                 { value: 'nutrition', label: 'Питание' },
-                { value: 'other', label: 'Другое' },
               ]}
               style={styles.segmentedButtons}
             />
             <SegmentedButtons
               value={newGoal.goal_type}
-              onValueChange={(value) =>
+              onValueChange={(value: string) =>
                 setNewGoal({ ...newGoal, goal_type: value as Goal['goal_type'] })
               }
               buttons={[
                 { value: 'weight_loss', label: 'Снижение веса' },
-                { value: 'weight_gain', label: 'Набор веса' },
                 { value: 'muscle_gain', label: 'Набор массы' },
                 { value: 'endurance', label: 'Выносливость' },
+              ]}
+              style={styles.segmentedButtons}
+            />
+            <SegmentedButtons
+              value={newGoal.goal_type}
+              onValueChange={(value: string) =>
+                setNewGoal({ ...newGoal, goal_type: value as Goal['goal_type'] })
+              }
+              buttons={[
                 { value: 'flexibility', label: 'Гибкость' },
                 { value: 'strength', label: 'Сила' },
                 { value: 'other', label: 'Другое' },
@@ -282,7 +326,7 @@ const styles = StyleSheet.create({
     maxHeight: '80%',
   },
   input: {
-    marginBottom: 12,
+    marginBottom: 12, 
   },
   segmentedButtons: {
     marginBottom: 12,

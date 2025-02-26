@@ -1,14 +1,15 @@
-import { View, ScrollView, StyleSheet } from 'react-native';
-import { Text, Card, Button, useTheme, ActivityIndicator } from 'react-native-paper';
+import { View, ScrollView, StyleSheet, Appearance } from 'react-native';
+import { Text, Card, Button, useTheme, ActivityIndicator, MD3LightTheme, MD3DarkTheme } from 'react-native-paper';
 import { Link, useFocusEffect } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../../../src/context/AuthContext';
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import { workoutsApi, nutritionApi, goalsApi } from '../../../src/services/api';
 
 export default function TabsIndexScreen() {
-  const { user } = useAuth();
-  const theme = useTheme();
+  const { user, theme } = useAuth();
+  const [greeting, setGreeting] = useState('');
+  const [isDarkMode, setIsDarkMode] = useState(false); // Состояние для темной темы
   const [loading, setLoading] = useState(true);
   const [stats, setStats] = useState({
     workouts: {
@@ -29,10 +30,34 @@ export default function TabsIndexScreen() {
     },
   });
 
+  // Определение времени суток и установка приветствия и темы
+  useEffect(() => {
+    const currentHour = new Date().getHours();
+    let newGreeting = '';
+    let darkMode = false;
+
+    if (currentHour >= 5 && currentHour < 12) {
+      newGreeting = 'Доброе утро';
+    } else if (currentHour >= 12 && currentHour < 17) {
+      newGreeting = 'Добрый день';
+    } else if (currentHour >= 17 && currentHour < 22) {
+      newGreeting = 'Добрый вечер';
+    } else {
+      newGreeting = 'Доброй ночи';
+      darkMode = true; // Включаем темную тему ночью
+    }
+
+    setGreeting(newGreeting);
+    setIsDarkMode(darkMode); // Устанавливаем состояние темной темы
+  }, []);
+
+  // Получаем тему на основе состояния темной темы
+  const appliedTheme = theme === 'dark' ? MD3DarkTheme : MD3LightTheme;
+
   const loadStats = useCallback(async () => {
     try {
       setLoading(true);
-      
+
       // Загрузка статистики тренировок
       const workoutsResponse = await workoutsApi.getAll();
       const workouts = workoutsResponse.data || [];
@@ -42,7 +67,7 @@ export default function TabsIndexScreen() {
       // Загрузка статистики питания
       const nutritionResponse = await nutritionApi.getTodayStats();
       console.log('Today nutrition stats:', nutritionResponse.data);
-      
+
       const todayStats = {
         calories: nutritionResponse.data.total_calories || 0,
         protein: nutritionResponse.data.total_protein || 0,
@@ -91,7 +116,7 @@ export default function TabsIndexScreen() {
     if (loading) {
       return (
         <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color={theme.colors.primary} />
+          <ActivityIndicator size="large" color={appliedTheme.colors.primary} />
         </View>
       );
     }
@@ -99,7 +124,7 @@ export default function TabsIndexScreen() {
     return (
       <View style={styles.statsContainer}>
         <Text style={styles.statsTitle}>Ваша статистика</Text>
-        
+
         <View style={styles.statsRow}>
           <View style={styles.statBox}>
             <Text style={styles.statLabel}>Всего тренировок</Text>
@@ -139,78 +164,78 @@ export default function TabsIndexScreen() {
   };
 
   return (
-    <ScrollView style={styles.container}>
-      <View style={styles.header}>
-        <Text style={styles.greeting}>Привет, {user?.username || 'Гость'}!</Text>
-        <Text style={styles.subtitle}>Давайте достигать целей вместе</Text>
-      </View>
+    <View style={{ ...styles.container, backgroundColor: appliedTheme.colors.background }}>
+      <ScrollView>
+        <View style={{ ...styles.header, backgroundColor: appliedTheme.colors.primary }}>
+          <Text style={styles.greeting}>{greeting}, {user?.username || 'Гость'}!</Text>
+          <Text style={styles.subtitle}>Давайте достигать целей вместе</Text>
+        </View>
 
-      {renderStats()}
+        {renderStats()}
 
-      <View style={styles.cardsContainer}>
-        <Card style={styles.card}>
-          <Card.Content>
-            <View style={styles.cardHeader}>
-              <Ionicons name="fitness" size={24} color={theme.colors.primary} />
-              <Text style={styles.cardTitle}>Тренировки</Text>
-            </View>
-            <Text style={styles.cardText}>
-              Отслеживайте свои тренировки и прогресс в достижении спортивных целей
-            </Text>
-          </Card.Content>
-          <Card.Actions>
-            <Link href="/(tabs)/workouts" asChild>
-              <Button mode="contained">Перейти к тренировкам</Button>
-            </Link>
-          </Card.Actions>
-        </Card>
+        <View style={styles.cardsContainer}>
+          <Card style={{ ...styles.card, backgroundColor: appliedTheme.colors.surface }}>
+            <Card.Content>
+              <View style={styles.cardHeader}>
+                <Ionicons name="fitness" size={24} color={appliedTheme.colors.primary} />
+                <Text style={{ ...styles.cardTitle, color: appliedTheme.colors.text }}>Тренировки</Text>
+              </View>
+              <Text style={{ ...styles.cardText, color: appliedTheme.colors.secondary }}>
+                Отслеживайте свои тренировки и прогресс в достижении спортивных целей
+              </Text>
+            </Card.Content>
+            <Card.Actions>
+              <Link href="/(tabs)/workouts" asChild>
+                <Button mode="contained">Перейти к тренировкам</Button>
+              </Link>
+            </Card.Actions>
+          </Card>
 
-        <Card style={styles.card}>
-          <Card.Content>
-            <View style={styles.cardHeader}>
-              <Ionicons name="restaurant" size={24} color={theme.colors.primary} />
-              <Text style={styles.cardTitle}>Питание</Text>
-            </View>
-            <Text style={styles.cardText}>
-              Контролируйте свой рацион и следите за потреблением калорий
-            </Text>
-          </Card.Content>
-          <Card.Actions>
-            <Link href="/(tabs)/nutrition" asChild>
-              <Button mode="contained">Управление питанием</Button>
-            </Link>
-          </Card.Actions>
-        </Card>
+          <Card style={{ ...styles.card, backgroundColor: appliedTheme.colors.surface }}>
+            <Card.Content>
+              <View style={styles.cardHeader}>
+                <Ionicons name="restaurant" size={24} color={appliedTheme.colors.primary} />
+                <Text style={{ ...styles.cardTitle, color: appliedTheme.colors.text }}>Питание</Text>
+              </View>
+              <Text style={{ ...styles.cardText, color: appliedTheme.colors.secondary }}>
+                Контролируйте свой рацион и следите за потреблением калорий
+              </Text>
+            </Card.Content>
+            <Card.Actions>
+              <Link href="/(tabs)/nutrition" asChild>
+                <Button mode="contained">Управление питанием</Button>
+              </Link>
+            </Card.Actions>
+          </Card>
 
-        <Card style={styles.card}>
-          <Card.Content>
-            <View style={styles.cardHeader}>
-              <Ionicons name="trophy" size={24} color={theme.colors.primary} />
-              <Text style={styles.cardTitle}>Цели</Text>
-            </View>
-            <Text style={styles.cardText}>
-              Ставьте цели и отслеживайте их достижение
-            </Text>
-          </Card.Content>
-          <Card.Actions>
-            <Link href="/(tabs)/goals" asChild>
-              <Button mode="contained">Мои цели</Button>
-            </Link>
-          </Card.Actions>
-        </Card>
-      </View>
-    </ScrollView>
+          <Card style={{ ...styles.card, backgroundColor: appliedTheme.colors.surface }}>
+            <Card.Content>
+              <View style={styles.cardHeader}>
+                <Ionicons name="trophy" size={24} color={appliedTheme.colors.primary} />
+                <Text style={{ ...styles.cardTitle, color: appliedTheme.colors.text }}>Цели</Text>
+              </View>
+              <Text style={{ ...styles.cardText, color: appliedTheme.colors.secondary }}>
+                Ставьте цели и отслеживайте их достижение
+              </Text>
+            </Card.Content>
+            <Card.Actions>
+              <Link href="/(tabs)/goals" asChild>
+                <Button mode="contained">Мои цели</Button>
+              </Link>
+            </Card.Actions>
+          </Card>
+        </View>
+      </ScrollView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f5f5f5',
   },
   header: {
     padding: 20,
-    backgroundColor: '#2196F3',
   },
   greeting: {
     fontSize: 24,

@@ -239,7 +239,7 @@ export const goalsApi = {
   }
 };
 
-export default api;
+export default api; 
 
 // Тестирование запросов
 const testApi = async () => {

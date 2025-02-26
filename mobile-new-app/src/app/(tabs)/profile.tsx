@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { View, StyleSheet, ScrollView } from 'react-native';
-import { Text, Button, Portal, Modal, TextInput, Avatar, Divider, SegmentedButtons } from 'react-native-paper';
+import { Text, Button, Portal, Modal, TextInput, Avatar, Divider, SegmentedButtons, Switch } from 'react-native-paper';
 import { useAuth } from '../../context/AuthContext';
 import { authApi } from '../../services/api';
 import { logger } from '../../utils/logger';
@@ -19,7 +19,7 @@ interface EditableProfile {
 }
 
 export default function ProfileScreen() {
-  const { user, logout, updateUser } = useAuth();
+  const { user, logout, updateUser, setTheme } = useAuth();
   const [visible, setVisible] = useState(false);
   const [loading, setLoading] = useState(false);
   const [editableProfile, setEditableProfile] = useState<EditableProfile>({
@@ -33,6 +33,7 @@ export default function ProfileScreen() {
     age: user?.age?.toString() || '',
     gender: user?.gender || '',
   });
+  const [isDarkTheme, setIsDarkTheme] = useState(false);
 
   const showModal = () => setVisible(true);
   const hideModal = () => setVisible(false);
@@ -45,7 +46,8 @@ export default function ProfileScreen() {
         height: editableProfile.height ? parseFloat(editableProfile.height) : null,
         weight: editableProfile.weight ? parseFloat(editableProfile.weight) : null,
         age: editableProfile.age ? parseInt(editableProfile.age) : null,
-        gender: editableProfile.gender || null,
+        gender: editableProfile.gender || undefined,
+        isDarkTheme,
       };
       
       logger.info('Updating profile with data:', profileData);
@@ -96,6 +98,15 @@ export default function ProfileScreen() {
         >
           Редактировать профиль
         </Button>
+        <Switch
+          value={isDarkTheme}
+          onValueChange={() => {
+            setIsDarkTheme(!isDarkTheme);
+            setTheme(isDarkTheme ? 'dark' : 'light');
+          }}
+          style={styles.switch}
+        />
+        <Text style={styles.switchLabel}>Темная тема</Text>
       </View>
 
       <View style={styles.section}>
@@ -137,14 +148,14 @@ export default function ProfileScreen() {
             <TextInput
               label="Имя пользователя"
               value={editableProfile.username}
-              onChangeText={(text) => setEditableProfile(prev => ({ ...prev, username: text }))}
+              onChangeText={(text: string) => setEditableProfile(prev => ({ ...prev, username: text }))}
               style={styles.input}
             />
             
             <TextInput
               label="Email"
               value={editableProfile.email}
-              onChangeText={(text) => setEditableProfile(prev => ({ ...prev, email: text }))}
+              onChangeText={(text: string) => setEditableProfile(prev => ({ ...prev, email: text }))}
               style={styles.input}
               keyboardType="email-address"
             />
@@ -152,21 +163,21 @@ export default function ProfileScreen() {
             <TextInput
               label="Имя"
               value={editableProfile.first_name}
-              onChangeText={(text) => setEditableProfile(prev => ({ ...prev, first_name: text }))}
+              onChangeText={(text: string) => setEditableProfile(prev => ({ ...prev, first_name: text }))}
               style={styles.input}
             />
             
             <TextInput
               label="Фамилия"
               value={editableProfile.last_name}
-              onChangeText={(text) => setEditableProfile(prev => ({ ...prev, last_name: text }))}
+              onChangeText={(text: string) => setEditableProfile(prev => ({ ...prev, last_name: text }))}
               style={styles.input}
             />
             
             <TextInput
               label="О себе"
               value={editableProfile.bio}
-              onChangeText={(text) => setEditableProfile(prev => ({ ...prev, bio: text }))}
+              onChangeText={(text: string) => setEditableProfile(prev => ({ ...prev, bio: text }))}
               style={styles.input}
               multiline
             />
@@ -174,7 +185,7 @@ export default function ProfileScreen() {
             <TextInput
               label="Рост (см)"
               value={editableProfile.height}
-              onChangeText={(text) => setEditableProfile(prev => ({ ...prev, height: text }))}
+              onChangeText={(text: string) => setEditableProfile(prev => ({ ...prev, height: text }))}
               style={styles.input}
               keyboardType="numeric"
             />
@@ -182,7 +193,7 @@ export default function ProfileScreen() {
             <TextInput
               label="Вес (кг)"
               value={editableProfile.weight}
-              onChangeText={(text) => setEditableProfile(prev => ({ ...prev, weight: text }))}
+              onChangeText={(text: string) => setEditableProfile(prev => ({ ...prev, weight: text }))}
               style={styles.input}
               keyboardType="numeric"
             />
@@ -190,7 +201,7 @@ export default function ProfileScreen() {
             <TextInput
               label="Возраст"
               value={editableProfile.age}
-              onChangeText={(text) => setEditableProfile(prev => ({ ...prev, age: text }))}
+              onChangeText={(text: string) => setEditableProfile(prev => ({ ...prev, age: text }))}
               style={styles.input}
               keyboardType="numeric"
             />
@@ -291,6 +302,13 @@ const styles = StyleSheet.create({
     marginTop: 10,
   },
   segmentedButtons: {
+    marginBottom: 10,
+  },
+  switch: {
+    marginVertical: 10,
+  },
+  switchLabel: {
+    fontSize: 16,
     marginBottom: 10,
   },
 }); 

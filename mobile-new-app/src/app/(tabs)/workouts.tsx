@@ -4,8 +4,12 @@ import { Text, FAB, Portal, Modal, TextInput, Button, IconButton } from 'react-n
 import { Workout } from '../../../src/types';
 import { workoutsApi } from '../../../src/services/api';
 import { logger } from '../../../src/utils/logger';
+import { useAuth } from '../../../src/context/AuthContext';
+import { MD3DarkTheme, MD3LightTheme } from 'react-native-paper';
 
 export default function WorkoutsScreen() {
+  const { theme } = useAuth();
+  const appliedTheme = theme === 'dark' ? MD3DarkTheme : MD3LightTheme;
   const [workouts, setWorkouts] = useState<Workout[]>([]);
   const [visible, setVisible] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -121,7 +125,7 @@ export default function WorkoutsScreen() {
   );
 
   return (
-    <View style={styles.container}>
+    <View style={{ ...styles.container, backgroundColor: appliedTheme.colors.background }}>
       <FlatList
         data={workouts}
         renderItem={renderWorkoutItem}
@@ -153,7 +157,7 @@ export default function WorkoutsScreen() {
             setVisible(false);
             setEditingWorkout(null);
           }}
-          contentContainerStyle={styles.modal}
+          contentContainerStyle={{ ...styles.modal, backgroundColor: appliedTheme.colors.surface }}
         >
           <Text style={styles.modalTitle}>
             {editingWorkout ? 'Редактировать тренировку' : 'Новая тренировка'}

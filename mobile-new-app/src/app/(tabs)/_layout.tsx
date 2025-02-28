@@ -33,7 +33,7 @@ export default function TabLayout() {
             case 'goals':
               iconName = focused ? 'trophy' : 'trophy-outline';
               break;
-            case 'profile/index':
+            case 'profile':
               iconName = focused ? 'person' : 'settings-outline';
               break;
           }
@@ -69,7 +69,7 @@ export default function TabLayout() {
         }}
       />
       <Tabs.Screen
-        name="profile/index"
+        name="profile"
         options={{
           title: 'Профиль',
           headerTitle: 'Профиль',

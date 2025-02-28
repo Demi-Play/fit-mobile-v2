@@ -82,6 +82,37 @@ export default function ProfileScreen() {
     </View>
   );
 
+  const calculateBMI = (weight: number, height: number): string => {
+    if (height === 0) return 'N/A';
+    const heightInMeters = height / 100;
+    const bmi = weight / (heightInMeters * heightInMeters);
+    return bmi.toFixed(1);
+  };
+
+  const calculateWHtR = (waist: number, height: number): string => {
+    if (height === 0) return 'N/A';
+    const whtr = waist / height;
+    return whtr.toFixed(2);
+  };
+
+  const calculateBMR = (weight: number, height: number, age: number, gender: User['gender']): string => {
+    if (!weight || !height || !age) return 'N/A';
+    let bmr = 0;
+    if (gender === 'M') {
+      bmr = 88.36 + (13.4 * weight) + (4.8 * height) - (5.7 * age);
+    } else if (gender === 'F') {
+      bmr = 447.6 + (9.2 * weight) + (3.1 * height) - (4.3 * age);
+    } else {
+      return 'N/A';
+    }
+    return bmr.toFixed(0);
+  };
+
+  const bmi = calculateBMI(user?.weight || 0, user?.height || 0);
+  const waist = user?.height ? user.height * 0.8 : 0; // Example waist circumference
+  const whtr = calculateWHtR(waist, user?.height || 0);
+  const bmr = calculateBMR(user?.weight || 0, user?.height || 0, user?.age || 0, user?.gender || 'O');
+
   return (
     <ScrollView style={styles.container}>
       <View style={styles.header}>
@@ -98,15 +129,15 @@ export default function ProfileScreen() {
         >
           Редактировать профиль
         </Button>
-        <Switch
+        {/* <Switch
           value={isDarkTheme}
           onValueChange={() => {
             setIsDarkTheme(!isDarkTheme);
             setTheme(isDarkTheme ? 'dark' : 'light');
           }}
           style={styles.switch}
-        />
-        <Text style={styles.switchLabel}>Темная тема</Text>
+        /> */}
+        {/* <Text style={styles.switchLabel}>Темная тема</Text> */}
       </View>
 
       <View style={styles.section}>
@@ -116,6 +147,14 @@ export default function ProfileScreen() {
         <ProfileField label="Имя" value={user?.first_name} />
         <ProfileField label="Фамилия" value={user?.last_name} />
         <ProfileField label="О себе" value={user?.bio} />
+      </View>
+
+      <View style={styles.metricsContainer}>
+        <Text style={styles.sectionTitle}>Физические показатели</Text>
+        <Divider style={styles.divider} />
+        <Text style={styles.metricLabel}>Индекс массы тела (ИМТ): {bmi}</Text>
+        <Text style={styles.metricLabel}>Индекс талии к росту (WHtR): {whtr}</Text>
+        <Text style={styles.metricLabel}>Основной обмен веществ (BMR): {bmr} ккал/день</Text>
       </View>
 
       <View style={styles.section}>
@@ -252,6 +291,11 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     marginBottom: 10,
   },
+  bmiLabel: {
+    fontSize: 16,
+    color: '#666',
+    marginBottom: 10,
+  },
   editButton: {
     marginTop: 10,
   },
@@ -310,5 +354,17 @@ const styles = StyleSheet.create({
   switchLabel: {
     fontSize: 16,
     marginBottom: 10,
+  },
+  metricsContainer: {
+    backgroundColor: '#fff',
+    marginTop: 20,
+    padding: 15,
+    borderRadius: 8,
+    elevation: 2,
+  },
+  metricLabel: {
+    fontSize: 16,
+    color: '#333',
+    marginBottom: 8,
   },
 }); 
